@@ -69,11 +69,19 @@ class Game {
         this.playerPot;
     }
 
-    player_input(player, action, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
+    playerInput(player, action, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
         const playerSpot = this.players.indexOf(player);
         if (playerSpot == -1) {return false;} // if player not found return false
         if (playerSpot != this.turn) {return false;} // if not players turn return false
         // test validity and do action, if valid return True
+        // if action does not exist return false
+        if (action == "ckeck") {
+            const playerPot = this.playerPot[player];
+            for (const otherPot in this.playerPot) {
+                if (this.playerPot[otherPot] > playerPot) {return false;}
+            }
+            this.bumpTurn(); 
+        }
 
         // test if turn over and call nextTurn if so
     }
@@ -89,6 +97,7 @@ class Game {
     bumpTurn(amt = 1) {
         this.turn += amt;
         this.turn %= this.players.length;
+        console.log("New turn:" + this.turn);
     }
     bumpBlindTurn(amt = 1) {
         this.blindTurn += amt;
@@ -170,14 +179,13 @@ class Game {
 
 }
 
-function player_input(playerID, game, action, amt = 0) {
+function playerRequestInput(playerID, action, game = test, amt = 0) {
     // try to find player
     sender = game.findPlayer(playerID);
     if (sender == null) {return false;} // if player not found return false
-    // check if action is valid and do action
-    
+    game.playerInput(sender, action, amt)
 }
 
 console.log("Hello World!")
-let test = new Game([new Player(51355, "Kasper", 2000), new Player(749720, "Alex", 1000)]);
+let test = new Game([new Player(51355, "Erik", 2000), new Player(749720, "Markus", 1000)]);
 console.log(test.toString());
