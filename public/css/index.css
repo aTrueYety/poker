@@ -1,0 +1,14 @@
+body {
+    margin: 0;
+    position: relative;
+    height: 100vh;
+    font-family: Helvetica;
+    overflow-y: hidden; /* Hide vertical scrollbar */
+    overflow-x: hidden; /* Hide horizontal scrollbar */
+    font-size: 2vh;
+}
+
+.maincontent {
+    display: block;
+    justify-content: center;
+}
