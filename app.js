@@ -13,6 +13,10 @@ const session = require('express-session');
 const e = require('express');
 var SQLiteStore = require('connect-sqlite3')(session);
 
+//users
+var users = {}
+
+//session
 app.use(session({
     secret: "GenererTilfeldigSenere", //endre dette senere. Lagre secret som et nytt tilfelfig nummer hver gang server starter?
     resave: false,
@@ -22,11 +26,7 @@ app.use(session({
 }));
 
 
-app.use(express.json()) 
-
-//lagre ws i egen liste med brukere
-//ws.send sender til bruker
-//ws.end slett ws
+app.use(express.json()) //json
 
 //css
 app.use(express.static(__dirname + '/public'));
@@ -40,30 +40,27 @@ app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname + '/public/html/index.html'));
 });
 
-let test = {};
+app.ws("/gameStream", function(ws, req) {
+    users[req.sessionID] = {}; //make new user
+    users[req.sessionID]["ws"] = ws; //add websocket to user
 
-app.ws("/wsInit", function(ws, req) {
-    test[req.sessionID] = {};
-    test[req.sessionID]["ws"] = ws;
-
-    ws.on("close",() => { 
-        console.log("close");
-        delete test[req.sessionID];
+    ws.on("close",() => {  //remove user when websocket closes
+        console.log("close"); 
+        delete users[req.sessionID];
     });
 });
-let players = {}; //initierer brukere
-
-// navn:{username: navn, res: res, c: chips, status: status, action: action}
-
-function getNumPlayers(){
-    return Object.keys(players).length;
-}
 
 app.post('/wstest', function(req, res) {
-    test[req.sessionID]["ws"].send("5")
+    users[req.sessionID]["ws"].send("5")
+
+    Object.values(users).forEach(user => {
+        console.log(user);
+        user.ws.send(req.sessionID);
+    });
     //console.log(req.session.ws);
     res.send("ok");
 });
+
 
 app.get("/test", function(req, res) {
     res.sendFile(path.join(__dirname + '/public/html/test.html'));
