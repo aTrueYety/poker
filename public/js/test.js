@@ -3,7 +3,7 @@ btn.onclick = function () {
     test();
 }
 
-var websocket = new WebSocket("ws://" + window.location.href.split("/")[2] + "/wsInit");
+var websocket = new WebSocket("ws://" + window.location.href.split("/")[2] + "/gameStream");
 
 websocket.onmessage = function (event) {
     console.log(event.data);
