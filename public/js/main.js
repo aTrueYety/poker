@@ -67,6 +67,8 @@ class Game {
         this.deck = new Deck();
         this.pot;
         this.playerPot;
+
+        // add obvservers
     }
 
     playerInput(player, action, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
@@ -74,20 +76,47 @@ class Game {
         if (playerSpot == -1) {return false;} // if player not found return false
         if (playerSpot != this.turn) {return false;} // if not players turn return false
         // test validity and do action, if valid return True
-        // if action does not exist return false
-        if (action == "ckeck") {
-            const playerPot = this.playerPot[player];
-            for (const otherPot in this.playerPot) {
-                if (this.playerPot[otherPot] > playerPot) {return false;}
-            }
-            this.bumpTurn(); 
+        switch (action) {
+            case "check":
+                const playerPot = this.playerPot[player]; // compare the playerPots. If senders playerpot is grater or equal to all others then do check
+                for (const otherPot in this.playerPot) {
+                    if (this.playerPot[otherPot] > playerPot) {return false;}
+                }
+                this.bumpTurn(); 
+                console.log("check validated for " + player.name);
+                return true;
+            case "call":
+                let topPot = 0;
+                for (let i = 0; i < this.playerPot; i++) {
+                    const element = this.playerPot[i];
+                    console.log(element);
+                }
+                for (const otherPot in this.playerPot) {
+                    topPot = Math.max(topPot, this.playerPot[otherPot]);
+                }
+                let callAmt = topPot - this.playerPot[player];
+                console.log("callAmt: " + callAmt);
+                if (callAmt <= 0) {return false;} // if no one has put in money then call is not valid
+                if (player.bank < callAmt) {return false;} // if player does not have enough money then call is not valid
+                this.playerPut(player, callAmt);
+                this.bumpTurn(); 
+                console.log("call validated for " + player.name);
+                return true;
+            case "raise":
+                return false;
+            case "bett":
+                return false;
+            case "fold":    
+                return false;
+            default:  // if action does not exist return false
+                console.log("action not found");
+                return false;
         }
-
         // test if turn over and call nextTurn if so
     }
     findPlayer(playerID) {
         for (const player in this.players) {
-            if (player.playerID == playerID) {return player;}
+            if (this.players[player].playerID == playerID) {return this.players[player];}
         }
         return null;
     }
@@ -133,7 +162,7 @@ class Game {
     startRound() {
         this.deck = new Deck();
         this.pot = 0;
-        this.playerPot = {};
+        this.playerPot = new Object();
         for (let i = 0; i < this.players.length; i++) {
             const player = this.players[i];
             player.hand = []; // reset hand
@@ -146,7 +175,7 @@ class Game {
         for (let i = 0; i < this.blinds.length; i++) { // deal blinds
             const player = this.players[(this.blindTurn+i)%this.players.length];
             const amt = Math.min(this.blinds[i], player.bank);
-            playerPut(player, amt);
+            this.playerPut(player, amt);
         }
     }
     endRound() {
@@ -182,10 +211,12 @@ class Game {
 function playerRequestInput(playerID, action, game = test, amt = 0) {
     // try to find player
     sender = game.findPlayer(playerID);
-    if (sender == null) {return false;} // if player not found return false
-    game.playerInput(sender, action, amt)
+    if (sender == null) {console.log("Sender not found"); return false;} // if player not found return false
+    const result = game.playerInput(sender, action, amt)
+    console.log("playerRequestInput: " + result);
 }
 
 console.log("Hello World!")
-let test = new Game([new Player(51355, "Erik", 2000), new Player(749720, "Markus", 1000)]);
+let test = new Game([new Player("51355", "Erik", 2000), new Player("749720", "Markus", 1000)]);
+test.startRound();
 console.log(test.toString());

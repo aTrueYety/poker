@@ -10,10 +10,25 @@
     </head>
     <body>
         <div class="player_input">
-            <button class="player_call" onclick="playerRequestInput(51355, 'check')">Call Erik</button>
-            <button class="player_fold" onclick="playerRequestInput(749720, 'check')">Call Markus</button>
+            <button class="player_call" onclick="playerRequestInput('51355', 'check')">check Erik</button>
+            <button class="player_fold" onclick="playerRequestInput('749720', 'check')">check Markus</button>
         </div>
-        
+        <div class="player_input">
+            <button class="player_call" onclick="playerRequestInput('51355', 'call')">call Erik</button>
+            <button class="player_fold" onclick="playerRequestInput('749720', 'call')">call Markus</button>
+        </div>
+        <div class="player_input">
+            <button class="player_call" onclick="playerRequestInput('51355', 'bett')">bett Erik</button>
+            <button class="player_fold" onclick="playerRequestInput('749720', 'bett')">bett Markus</button>
+        </div>
+        <div class="player_input">
+            <button class="player_call" onclick="playerRequestInput('51355', 'raise')">raise Erik</button>
+            <button class="player_fold" onclick="playerRequestInput('749720', 'raise')">raise Markus</button>
+        </div>
+        <div class="player_input">
+            <button class="player_call" onclick="playerRequestInput('51355', 'fold')">fold Erik</button>
+            <button class="player_fold" onclick="playerRequestInput('749720', 'fold')">fold Markus</button>
+        </div>
         
         <script src="../js/main.js" async defer></script>
         <script src="../js/buildInput.js" async defer></script>
