@@ -62,6 +62,10 @@ app.post('/wstest', function(req, res) {
 });
 
 
+app.get("/game", function(req, res) {
+    res.sendFile(path.join(__dirname + '/public/html/tempgame.html'));
+});
+
 app.get("/test", function(req, res) {
     res.sendFile(path.join(__dirname + '/public/html/test.html'));
 });

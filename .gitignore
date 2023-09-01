@@ -1,2 +1,3 @@
 /database/sessions.db
-
+.DS_STORE
+.tmp.js
