@@ -1,6 +1,5 @@
-
 #session store
-/database/sessions.db 
+database/sessions.db 
 
 #mac
 .DS_STORE

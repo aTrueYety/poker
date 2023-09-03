@@ -13,30 +13,37 @@ img{
     pointer-events: none;
 }
 
+#game{
+    height: 100vh;
+    width: 80vw;
+}
+
 /* Communtiy cards */
 
 .centerWrapper{ /* Wrapper for placing the communtiy cards in the center*/
     position: absolute;
     z-index: 3;
-    height: 100vh;
-    width: 100vw;
+    height: 100%;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 #centerCards{ /* Cards in the middle of the screen */
-    width: 50vw;
-    height: 20vh;
+    width: 100%;
+    height: 20%;
     overflow: hidden;
     display: flex;
     flex-direction: row;
+    align-content: center;
+    justify-content: center;
     user-select: none;
 }
 
 .card{
-    width: 10vw;
-    height: 20vh;
+    width: 6vw;
+    height: 12vh;
     margin: 0 1vw;
     display: flex;
     align-items: center;
@@ -60,8 +67,8 @@ img{
 .userWrapper{ /* Wrapper for the user */
     position: absolute;
     z-index: 3;
-    height: 30vh;
-    width: 100vw;
+    height: 30%;
+    width: 100%;
     display: flex;
     margin-top: 70vh;
     align-items: center;
@@ -79,6 +86,7 @@ img{
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    user-select: none;
 }
 
 #userInfo>div{
@@ -107,18 +115,20 @@ img{
 .playerWrapper{ /* Wrapper for the player */
     position: absolute;
     z-index: 3;
-    height: 30vh;
-    width: 100vw;
+    height: 10vh;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 
-#player{
+.player{
     display: flex;
     flex-direction: column;
     align-items: center;
+    max-width: 100%;
+    max-height: 100%;
 }
 
 #playerInfo{
@@ -128,12 +138,13 @@ img{
 }
 
 #playerInfo>div{
-    margin-left: 2vw;
-    margin-right: 2vw;
+    margin-left: 1vw;
+    margin-right: 1vw;
 }
 
 #playerInfo>div>p{
-    color:aliceblue;
+    color: aliceblue;
+    font-size: min(1vh, 1vw);
 }
 
 .playerCards{
@@ -146,20 +157,18 @@ img{
 
 
 
-
-
 .uiWrapper{ /* Wrapper for the UI. Places all elements on top of the board */
     position: absolute;
     z-index: 2;
-    height: 100vh;
-    width: 100vw;
+    height: 100%;
+    width: 80vw;
 }
 
 #board{
     position: absolute;
     z-index: 1;
     height: 100vh;
-    width: 100vw;
+    width: 80vw;
     display: flex;
     align-items: center;
     pointer-events: none;
@@ -169,5 +178,58 @@ img{
     max-width: 100%;
     max-height: 100%;
     height: 100vh;
-    width: 100vw;
+    width: 80vw;
+}
+
+
+/* Chat */
+
+.chat {
+    position: absolute;
+    top: 0;
+    left: 80vw;
+    width: 22vw;
+    height: 100vh;
+    background-color: #494848;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+    
+    z-index: 4;
+}
+
+#typeField {
+    margin-top: 20px;
+    margin-bottom: 60px;
+}
+
+input:focus{
+    outline: none;
+}
+
+#msgContainer{
+    width: 100%;
+    margin-top: auto;
+}
+
+.chatElement{
+    margin-top: 0.2vw;
+    margin-left: 2vw;
+    margin-right: 2vw;
+    float: left;
+    width: calc(100% - 4vw);
+    overflow: hidden;
+    font-size: 1vw;
+}
+
+.chatName{
+    display: inline-block;
+    font-weight: bold;
+    font-size: 0.9vw;
+    margin-top: 1vw; 
 }

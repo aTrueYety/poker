@@ -34,6 +34,8 @@ app.use(express.static(__dirname + '/public'));
 
 //start server
 app.listen(port)
+
+
 console.log("server started: http://localhost:"+port)
 
 app.get('/', function(req, res) {
@@ -43,12 +45,52 @@ app.get('/', function(req, res) {
 app.ws("/gameStream", function(ws, req) {
     users[req.sessionID] = {}; //make new user
     users[req.sessionID]["ws"] = ws; //add websocket to user
+    //users[req.sessionID]["username"] = req.session.username; //add username to user
+    console.log(req.sessionID)
 
     ws.on("close",() => {  //remove user when websocket closes
         console.log("close"); 
         delete users[req.sessionID];
     });
+
+    ws.on("message", function(data){ //send chat to all users
+        console.log(data);
+        let message;
+        try{
+            message = JSON.parse(data)
+        } catch(e){
+            console.error("error parsing json message");
+            console.log(data);
+            return;
+        }
+        switch(message.type){
+            case "chat": //chat
+                chat(message.message, req.sessionID);
+                break;
+
+            case "gameAction": //game action
+                //send data to game class
+                //pass through res
+                
+                //should be formated as {"type":"gameAction","action":"action","data":"data"}
+                break;
+            
+            default: //if the type is not recognized, err
+                console.error("error parsing json message");
+                ws.send('{"type":"error","message":"'+message.type+' is not a valid message type"}');
+                break;
+        }
+    });
 });
+
+// ----------------- CHAT ----------------- //
+
+function chat(message,username){ //send chat through websocket
+    Object.values(users).forEach(user => {
+        user["ws"].send('{"type":"chat","chatMessage":"'+message+'","username":"'+username+'"}');
+    });
+}
+
 
 app.post('/wstest', function(req, res) {
     users[req.sessionID]["ws"].send("5")
