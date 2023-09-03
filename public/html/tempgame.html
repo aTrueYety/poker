@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" type = "text/css" href="/css/tempgame.css">
+    </head>
+    <body>
+        <div id = "game">
+
+            <div id = "board">
+            </div>
+
+            <div class = "uiWrapper">
+                <div class = "centerWrapper">
+                    <div id = "centerCards">
+                        <div class = "card" id = "c1">
+                        </div>
+                        <div class = "card" id = "c2">
+                        </div>
+                        <div class = "card" id = "c3">
+                        </div>
+                        <div class = "card" id = "c4">
+                        </div>
+                        <div class = "card" id = "c5">
+                        </div>
+                    </div>
+                </div>
+
+                <div class = "playersWrapper">
+                    <div class = "userWrapper">
+                        <div id = "user">
+                            <div id = userInfo>
+                                <div class = "username">
+                                    <p id = "player_name">Player 1</p>
+                                </div>
+                                <div class = "userChips">
+                                    <p id = "player_chips">Chips: 1000</p>
+                                </div>
+                                <div class = "userBet">
+                                    <p id = "player_bet">Bet: 0</p>
+                                </div>
+                            </div>
+                            <div class = "userCardWrapper">
+                                <div class = "userCards">
+                                    <div class = "card" id = "p1c1">
+                                    </div>
+                                    <div class = "card" id = "p1c2">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="players"> 
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <script src="../js/main.js" async defer></script>
+        <script src = "../js/game.js"async defer> </script>
+        <script src="../js/buildInput.js" async defer></script>
+    </body>
+</html>
