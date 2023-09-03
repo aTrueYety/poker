@@ -306,6 +306,7 @@ class Game {
             if (player.lastAction != "fold") {candidates.push(player);}
         }
         if (candidates.length == 1) {console.log("Winner: " + candidates[0].name); return;} // if only one player left then they are the winner
+        let bestHands = [];
         for (let i = 0; i < candidates.length; i++) {
             // get candidate
             const candidate = candidates[i];
@@ -322,11 +323,28 @@ class Game {
                     allHands.push(newHand);
                 }
             }
-            // get best hand
+            // get best hand for candidate
             let bestHand = allHands[0];
             for (let i = 1; i < allHands.length; i++) {
                 const hand = allHands[i];
-                if (hand > bestHand) {bestHand = hand;}
+                const comparison = compareHands(hand, bestHand);
+                if (comparison) {bestHand = hand;}
+            }
+            bestHands.push(bestHand);
+        }
+        // get best hand and assosiated candidate
+        let winners = [candidates[0]];
+        let bestHand = [bestHands[0]];
+        for (let i = 1; i < bestHands.length; i++) {
+            const candidate = candidates[i];
+            const hand = bestHands[i];
+            const handValue = compareHands(hand, bestHand[0]);
+            if (comparison === True) {
+                bestHand = [hand];
+                winners = [candidate];
+            } else if (comparison === 0) {
+                bestHand.push(hand);
+                winners.push(candidate);
             }
         }
     }
@@ -353,47 +371,78 @@ function playerRequestInput(playerID, action, game = test, amt = 0) {
     console.log("playerRequestInput: " + result);
 }
 
-function compareHand(hand1, hand2) {
-
+function compareHands(hand1, hand2) /*Returns true if hand one is greater or false if hand two is greater. Returns 0 if they are equal*/ {
+    const hand1Value = evaluateHand(hand1);
+    const hand2Value = evaluateHand(hand2);
+    for (let i = 0; i < hand1Value.length; i++) {
+        if (hand1Value[i] > hand2Value[i]) {return true;}
+        if (hand1Value[i] < hand2Value[i]) {return false;}
+    }
+    return 0;
 }
 
 function evaluateHand(hand) { 
-    // this kinda only works without kickers as tie breaker
-    /* encodes hand value as a number. Higher number is better hand. 
-    Digits 1-2 are for royal flush, where0 represents no royal flush 
-    and a number represents the higest in the flush. 3-4 represents 
-    straight flush and so on. The number would be 32 digids long 
-    whitch is too long for js so its split into two numbers and 
-    returned in an array. */
-        // check for royal flush     1-2
-        // check for straight flush  3-4
-        // check for four of a kind  5-6
-        // check for full house      7-8 and 9-10
-        // check for flush           11-12
-        // check for straight        13-14
-        // check for three of a kind 15-16
-        // check for two pair        17-18 and 19-20
-        // check for pair            21-22
-        // check for high card       23-24
-        // check for kickers         25-26 and 27-28 and 29-30 and 31-32
-    
     // this should work with kickers as tie breakers
     /* Encodes hand value as an array of numbers. Each element represents 
     a combination of cards. Element 1 is for royal flush, where 0 
     represents no royal flush and a number represents the higest in the 
     flush. 2 represents straight flush and so on.*/
-        // check for royal flush     1
-        // check for straight flush  2
-        // check for four of a kind  3
-        // check for full house      4 and 5
-        // check for flush           6
-        // check for straight        7
-        // check for three of a kind 8
-        // check for two pair        9 and 10
-        // check for pair            11
-        // check for high card       12
-        // check for kickers         13 and 14 and 15 and 16
+        // check for royal flush     0
+        // check for straight flush  1
+        // check for four of a kind  2
+        // check for full house      3 and 4
+        // check for flush           5
+        // check for straight        6
+        // check for three of a kind 7
+        // check for two pair        8 (second is placed in 9)
+        // check for high card and kickers       10, 11, 12, 13 and 14 in order form high to low
     
+    let res = [];
+    for (let i = 0; i < 14; i++) { res.push(0); }
+    hand.sort(function(a, b){return b - a});
+    var pairs = []
+    var testSuit = hand[0].suit;
+    res[5] = 1;
+    var testValue = hand[0].value;
+    res[6] = testValue;
+    for (let i = 0; i < hand.length; i++) {
+        const card = hand[i];
+        const otherCards = hand; // check for pair
+        otherCards.splice(i, 1); // remove this card from otherCards, may be a bug here where it removed the card from the hand array. Needs testing
+        let similars = 0;
+        for (let j = i; j < otherCards.length; j++) {
+            if (otherCards[j] == null) {continue;}
+            if (card.value == otherCards[j].value) { 
+                similars++;
+                otherCards[j] = null;
+            }
+        }
+        if (similars == 1) { pairs.push(card.value); }
+        // check for three of a kind 7
+        if (similars == 2) { res[7] = card.value; }
+        // check for four of a kind  2
+        if (similars == 3) { res[2] = card.value; }
+        // check for flush           5
+        if (card.suit != testSuit) { res[5] = 0; }
+        // check for straight        6
+        if (card.value != testValue-i) { res[6] = 0; }
+    }
+        // check for two pair        8 (second is placed in 9)
+    pairs.sort(function(a, b){return a - b});
+    if (pairs.length > 1) {res[9] = pairs[1]}
+        // check for pair            9
+    if (pairs.length > 0) {res[10] = pairs[0];}
+        // check for full house      3 and 4
+    if (pairs.length > 1) {if (res[7] != 0 && res[9] != 0) {res[3] = res[7]; res[4] = res[9];}} 
+    else if (res[7] != 0 && res[10] != 0) {res[3] = res[7]; res[4] = res[10];}
+        // check for straight flush  1
+    if (res[5] != 0 && res[6] != 0) {res[1] = res[6];}
+        // check for royal flush     0
+    if (res[1] == 14) {res[0] = 1;}
+        // check for high card and kickers       10, 11, 12, 13 and 14 in order form high to low
+    for (let i = 0; i < hand.length; i++) { res[11+i] = hand[i]; }
+    
+    return res;
 }
 
 console.log("Hello World!")
