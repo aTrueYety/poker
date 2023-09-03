@@ -27,10 +27,10 @@ for(let i = 1; i<3; i++){ //get and render player cards
 function getPlayerTemplate(playerNum,username, chips, bet, playerxPos, playeryPos){
 
     let posx = 0 + playerxPos*40; //calculate x position
-    let posy = 30 + playeryPos*40; //calculate y position
+    let posy = 40 + playeryPos*40; //calculate y position
 
     return `
-    <div class = "playerWrapper" style = "top:${posy}vh; left:${posx}vw;">
+    <div class = "playerWrapper" style = "top:${posy}%; left:${posx}%;">
         <div class="player">
             <div class = "playerCardWrapper">
                 <div class = "playerCards">
@@ -40,7 +40,7 @@ function getPlayerTemplate(playerNum,username, chips, bet, playerxPos, playeryPo
                     </div>
                 </div>
             </div>
-            <div id = userInfo>
+            <div id = playerInfo>
                 <div class = "playerName">
                     <p id = "player_name">${username}</p>
                 </div>
@@ -57,8 +57,12 @@ function getPlayerTemplate(playerNum,username, chips, bet, playerxPos, playeryPo
     
 }
 
+function getCurrButtons(){
 
-let players = 6; //test with different amount of players
+}
+
+
+let players = 4; //test with different amount of players
 let backCard = "<img src='render/assets/cards/Spades/14.jpg'> <div class=cardOutline></div>";
 
 let prPlayerAngle = 2*Math.PI/players; //angle between players
@@ -81,3 +85,72 @@ for(let i = 1; i < players; i++){ //calculate and render player positions
 
 }
 
+//webscocket setup
+var socket = new WebSocket("ws://" + window.location.href.split("/")[2] + "/gameStream");
+
+socket.onmessage = function (event) {
+    console.log(event.data);
+    let data;
+
+    try{
+        data = JSON.parse(event.data);
+    } catch(e){
+        console.error("error parsing json response");
+        return;
+    }
+    
+    switch(data.type){
+        case "chat":
+            displayChat(data);
+            // should be formated as {"type":"chat","name":"username","chatMessage":"message""}
+            break;
+
+        default:
+            console.error("error parsing json response");
+            break;
+    }
+};
+
+
+// ----------------- CHAT ----------------- //
+
+function sendChat(inputvalue){ //send chat through websocket
+    socket.send('{"type":"chat","message":"'+inputvalue+'"}');
+}
+
+//display chat
+function displayChat(chatMessage){ 
+    chat.push(chatMessage)
+    if (chat.length > 50){ //hard coded max chat length CHANGE LATER
+        chat.shift();
+    }
+  
+    document.getElementById("msgContainer").innerHTML = "";
+    var prevChatter = "";
+  
+    chat.forEach(chatMessage => { //display messages
+        if (prevChatter === chatMessage.username){ //if the messsage is from the same user, style differently
+            document.getElementById("msgContainer").innerHTML = document.getElementById("msgContainer").innerHTML + "<div class = 'chatElement'>" + chatMessage.chatMessage + "</div>"
+        }
+        else{ //new message from different user
+            document.getElementById("msgContainer").innerHTML = document.getElementById("msgContainer").innerHTML + "<div class = 'chatElement'> <div class = 'chatName'>"+  chatMessage.username + ":"+ "</div> " + chatMessage.chatMessage + "</div>"
+        }
+      
+        prevChatter = chatMessage.username //save previous chatter
+    });
+}
+
+var chat = []; //chat array
+
+window.onload = function(){ //onload get typebox
+    chatinput = document.getElementById("typebox");
+    
+    //send chat to server
+    chatinput.addEventListener("keydown",function(event){
+        if (event.key === "Enter"){
+            inputvalue = document.getElementById("typebox").value;
+            document.getElementById("typebox").value = "";
+            sendChat(inputvalue);
+        }
+    })
+};

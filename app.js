@@ -34,6 +34,8 @@ app.use(express.static(__dirname + '/public'));
 
 //start server
 app.listen(port)
+
+
 console.log("server started: http://localhost:"+port)
 
 app.get('/', function(req, res) {
@@ -43,12 +45,45 @@ app.get('/', function(req, res) {
 app.ws("/gameStream", function(ws, req) {
     users[req.sessionID] = {}; //make new user
     users[req.sessionID]["ws"] = ws; //add websocket to user
+    //users[req.sessionID]["username"] = req.session.username; //add username to user
+    console.log(req.sessionID)
 
     ws.on("close",() => {  //remove user when websocket closes
         console.log("close"); 
         delete users[req.sessionID];
     });
+
+    ws.on("message", function(data){ //send chat to all users
+        console.log(data);
+        let message;
+        try{
+            message = JSON.parse(data)
+        } catch(e){
+            console.error("error parsing json message");
+            console.log(data);
+            return;
+        }
+        switch(message.type){
+            case "chat":
+                chat(message.message, req.sessionID);
+                break;
+            
+            default:
+                console.error("error parsing json message");
+                console.log(data);
+                break;
+        }
+    });
 });
+
+// ----------------- CHAT ----------------- //
+
+function chat(message,username){ //send chat through websocket
+    Object.values(users).forEach(user => {
+        user["ws"].send('{"type":"chat","chatMessage":"'+message+'","username":"'+username+'"}');
+    });
+}
+
 
 app.post('/wstest', function(req, res) {
     users[req.sessionID]["ws"].send("5")
