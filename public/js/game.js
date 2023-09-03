@@ -102,9 +102,16 @@ socket.onmessage = function (event) {
     switch(data.type){
         case "chat":
             displayChat(data);
-            // should be formated as {"type":"chat","name":"username","chatMessage":"message""}
+            //should be formated as {"type":"chat","name":"username","chatMessage":"message""}
             break;
 
+        case "gameAction":
+            break;
+        
+        case "error":
+            console.error(data.message);
+            break;
+         
         default:
             console.error("error parsing json response");
             break;

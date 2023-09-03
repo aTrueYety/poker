@@ -64,13 +64,20 @@ app.ws("/gameStream", function(ws, req) {
             return;
         }
         switch(message.type){
-            case "chat":
+            case "chat": //chat
                 chat(message.message, req.sessionID);
                 break;
+
+            case "gameAction": //game action
+                //send data to game class
+                //pass through res
+                
+                //should be formated as {"type":"gameAction","action":"action","data":"data"}
+                break;
             
-            default:
+            default: //if the type is not recognized, err
                 console.error("error parsing json message");
-                console.log(data);
+                ws.send('{"type":"error","message":"'+message.type+' is not a valid message type"}');
                 break;
         }
     });
