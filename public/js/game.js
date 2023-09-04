@@ -147,12 +147,64 @@ function displayChat(chatMessage){
     });
 }
 
+function sendHttpRequest(link, cb){
+    let xhp = new XMLHttpRequest(); // initierer en ny request
+    xhp.responseType = 'text';
+  
+    xhp.open("POST",link ,true); //man setter url til meldingen
+    xhp.send();
+
+    xhp.timeout = 2000;
+  
+    xhp.onload = () => {
+      	console.log(xhp.response)
+      	cb(xhp.response);
+	  	return
+    }
+    
+    xhp.ontimeout = (e) =>{ //connection timed out, resend
+        cb("err: timeout")
+		return
+    }
+
+}
+
 var chat = []; //chat array
 
 window.onload = function(){ //onload get typebox
     chatinput = document.getElementById("typebox");
+    nameinput = document.getElementById("getName");
+
+    sendHttpRequest("/getName", function(res){
+        console.log(res);
+        if (res.includes("err")){
+            document.getElementById("popup").style = "visibility:visible;";
+            document.getElementById("error").innerHTML = res;
+        }
+        else if(res === "no_user"){
+            document.getElementById("popup").style = "visibility:visible;";
+        }
+    });
+
+    nameinput.addEventListener("keydown",function(event){
+        if (event.key === "Enter"){
+            inputvalue = document.getElementById("getName").value;
+            document.getElementById("getName").value = "";
+            sendHttpRequest("/setName/"+inputvalue, function(res){
+                console.log(res);
+                if (res.includes("err")){
+                    document.getElementById("err").innerHTML = res;
+                }
+                else if(res === "ok"){
+                    document.getElementById("popup").style = "visibility:hidden;";
+                } else {
+                    document.getElementById("err").innerHTML = res;
+                }
+            });
+        }
+    })
     
-    //send chat to server
+    //send chat on enter
     chatinput.addEventListener("keydown",function(event){
         if (event.key === "Enter"){
             inputvalue = document.getElementById("typebox").value;
