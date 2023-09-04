@@ -87,6 +87,7 @@ img{
     flex-direction: row;
     justify-content: space-between;
     user-select: none;
+    overflow: hidden;
 }
 
 #userInfo>div{
@@ -280,3 +281,43 @@ input:focus{
 #err{
     color:red;
 }
+
+.userButtons{
+    width: 20vw;
+    display: flex;
+    align-content: center;
+    align-items: center;
+    flex-direction: column;
+    opacity: 60%;
+}
+
+.userButton{
+    border: none;
+    text-align: center;
+    display: inline-block;
+    height: 7vh;
+    margin-top: 1vh;
+    margin-bottom: 1vh;
+    width: 12vw;
+    box-shadow: 0 9px #999;
+    border-radius: 5px;
+}
+
+.userButton:hover{
+    background-color: #d2d2d2;
+}
+
+.userButton:active{
+    background-color: #898989;
+    transform: translateY(4px);
+    box-shadow:0 5px #666 ;
+}
+
+#raise{
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
