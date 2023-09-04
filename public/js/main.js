@@ -223,7 +223,7 @@ class Game {
         return true;
     }
     testRoundOver() /*This only runs after testTurnOver is sucsessful*/ {
-        if (this.board.hand.length == 5) {return ture;} // if board is full and turn over then round over
+        if (this.board.hand.length == 5) {return true;} // if board is full and turn over then round over
         var inGame = 0;
         for (let i = 0; i < this.players.length; i++) {
             if (!(this.players[i].allIn || this.players[i].lastAction == "fold")) {inGame++;}
@@ -287,22 +287,60 @@ class Game {
             console.log("Blind: " + player.name + " " + amt);
         }
     }
-    endRound() {
+    endRound() { // this assumes all player in game not folded have the sama amount of money in the pot or are all in
         console.log("endRound");
-        // find the winner
-        let winners = this.getWinners();
+        // find the winners and give them the money $$$$$$$$$$$$$$$
+        let playersToInclude = [...this.players];
+        do {
+            let winners = [...this.getWinners(playersToInclude)];
+            winners.forEach(winner => { playersToInclude.splice(playersToInclude.indexOf(winner), 1); });  // remove winners from playersToInclude
+            console.log(winners);
+            console.log(this.board);
+            this.players.forEach(player => { console.log(player) });
+            do {
+                // get the winner(s) with least money in the pot and put them in array minPotWinners
+                let minPotWinners = [winners[0]];
+                for (let i = 0; i < winners.length; i++) {
+                    const winner = winners[i];
+                    if (winner.turnPot < minPotWinners[0].turnPot) {minPotWinners = [winner];}
+                    if (winner.turnPot == minPotWinners[0].turnPot) {minPotWinners.push(winner);}
+                }
+                let minWinnerPot = minPotWinners[0].turnPot; // get the player pot of an alement in minPotWinners
+                let sidepot = 0;
+                for (let i = 0; i < this.players.length; i++) { // Put money from each playerPot into the sidepot.
+                    const player = this.players[i];
+                    const amt = Math.min(player.turnPot, minWinnerPot);
+                    sidepot += amt;
+                    player.turnPot -= amt;
+                }
+                // equaly share the sidepot too all winners. Remove minPotWinners form winners as they are fully paid now.
+                const share = Math.floor(sidepot/minPotWinners.length); // idk what to do with the rest
+                for (let i = 0; i < winners.length; i++) { winners[i].bank += share; }
+                for (let i = 0; i < minPotWinners.length; i++) {
+                    const toRemove = minPotWinners[i];
+                    winners.splice(winners.indexOf(toRemove), 1);
+                }
+            } while (winners.length > 0);
+            this.oppdaterPot();
+        } while (this.pot > 0);
+        
         // give the winner the money
-
+            // get the winner(s) with least money in the pot and put them in array 'a'
+            // get the player pot of an alement in 'a' and put the value in amount.
+            // make sidepot. Put 'amount' money from each playerPot into the sidepot.
+            // equaly share the sidepot too all winners. Remove 'a' form winners as they are fully paid now.
+            // repeat until all winners are paid
         // start a new game startRound()
         // ckeck if a player lost and kick them
         //        this.players.pop(   )
         // this.bumpBlindTurn();     fiks dette med at player blir kicked
     }
 
-    getWinners() { // returns an array of the winner or winners in order if there are multiple
+    // if the winner(s) are all in then run this again with all players without the winner(s) to find where the eventual rest of pot should go
+    getWinners( subjects = this.players ) { // returns an array of the winner or winners there are multiple in a tie. Takes in an array of players
         let candidates = [];
-        for (let i = 0; i < this.players.length; i++) {
-            const player = this.players[i];
+        for (let i = 0; i < subjects.length; i++) {
+            const player = subjects[i];
             if (player.lastAction != "fold") {candidates.push(player);}
         }
         if (candidates.length == 1) {console.log("Winner: " + candidates[0].name); return;} // if only one player left then they are the winner
@@ -318,17 +356,18 @@ class Game {
             let allHands = [];
             for (let i = 0; i < allCards.length-1; i++) {
                 for (let j = i+1; j < allCards.length; j++) {
-                    let newHand = allCards.splice(i, 1);
+                    var newHand = [...allCards];
                     newHand.splice(j, 1);
-                    allHands.push(newHand);
+                    newHand.splice(i, 1);
+                    allHands.push([...newHand]);
                 }
             }
             // get best hand for candidate
             let bestHand = allHands[0];
             for (let i = 1; i < allHands.length; i++) {
                 const hand = allHands[i];
-                const comparison = compareHands(hand, bestHand);
-                if (comparison) {bestHand = hand;}
+                const comparison = compareHands([...hand], [...bestHand]);
+                if (comparison) {bestHand = [...hand];}
             }
             bestHands.push(bestHand);
         }
@@ -338,8 +377,8 @@ class Game {
         for (let i = 1; i < bestHands.length; i++) {
             const candidate = candidates[i];
             const hand = bestHands[i];
-            const handValue = compareHands(hand, bestHand[0]);
-            if (comparison === True) {
+            const comparison = compareHands(hand, bestHand[0]);
+            if (comparison === true) {
                 bestHand = [hand];
                 winners = [candidate];
             } else if (comparison === 0) {
@@ -347,6 +386,7 @@ class Game {
                 winners.push(candidate);
             }
         }
+        return winners;
     }
 
     toString() {
@@ -407,7 +447,7 @@ function evaluateHand(hand) {
     res[6] = testValue;
     for (let i = 0; i < hand.length; i++) {
         const card = hand[i];
-        const otherCards = hand; // check for pair
+        const otherCards = [...hand]; // check for pair
         otherCards.splice(i, 1); // remove this card from otherCards, may be a bug here where it removed the card from the hand array. Needs testing
         let similars = 0;
         for (let j = i; j < otherCards.length; j++) {
