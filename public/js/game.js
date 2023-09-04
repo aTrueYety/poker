@@ -157,7 +157,6 @@ function sendHttpRequest(link, cb){
     xhp.timeout = 2000;
   
     xhp.onload = () => {
-      	console.log(xhp.response)
       	cb(xhp.response);
 	  	return
     }
@@ -176,7 +175,6 @@ window.onload = function(){ //onload get typebox
     nameinput = document.getElementById("getName");
 
     sendHttpRequest("/getName", function(res){
-        console.log(res);
         if (res.includes("err")){
             document.getElementById("popup").style = "visibility:visible;";
             document.getElementById("error").innerHTML = res;
@@ -191,7 +189,6 @@ window.onload = function(){ //onload get typebox
             inputvalue = document.getElementById("getName").value;
             document.getElementById("getName").value = "";
             sendHttpRequest("/setName/"+inputvalue, function(res){
-                console.log(res);
                 if (res.includes("err")){
                     document.getElementById("err").innerHTML = res;
                 }

@@ -146,3 +146,9 @@ function checkUsername(username){
 
     return true;
 }
+
+
+
+
+// ----------------- GAME ----------------- //
+
