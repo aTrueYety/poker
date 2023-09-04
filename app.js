@@ -65,7 +65,7 @@ app.ws("/gameStream", function(ws, req) {
         }
         switch(message.type){
             case "chat": //chat
-                chat(message.message, req.sessionID);
+                chat(message.message, req.session.username);
                 break;
 
             case "gameAction": //game action
@@ -111,3 +111,38 @@ app.get("/game", function(req, res) {
 app.get("/test", function(req, res) {
     res.sendFile(path.join(__dirname + '/public/html/test.html'));
 });
+
+app.post("/getName", function(req, res) {
+    if(req.session.username){
+        res.send(req.session.username);
+    }
+    else{
+        res.send("no_user");
+    }
+});
+
+app.post("/setName/:username", function(req, res) {
+    if(!checkUsername(req.params.username)){
+        res.send("err:username_taken");
+        return;
+    }
+    req.session.username = req.params.username;
+    users[req.sessionID]["username"] = req.params.username;
+    req.session.save();
+    res.send("ok");
+});
+
+function checkUsername(username){
+    //check if username is valid
+
+    //parse for html or script tags
+
+    //check if username is taken
+    Object.values(users).forEach(user => {
+        if(user.username === username){
+            return false;
+        }
+    });
+
+    return true;
+}
