@@ -294,9 +294,9 @@ class Game {
         do {
             let winners = [...this.getWinners(playersToInclude)];
             winners.forEach(winner => { playersToInclude.splice(playersToInclude.indexOf(winner), 1); });  // remove winners from playersToInclude
-            console.log(winners);
-            console.log(this.board);
-            this.players.forEach(player => { console.log(player) });
+            console.log([...winners]);
+            console.log(this.board.hand);
+            this.players.forEach(player => { console.log(player.hand) });
             do {
                 // get the winner(s) with least money in the pot and put them in array minPotWinners
                 let minPotWinners = [winners[0]];
@@ -349,14 +349,28 @@ class Game {
             // get candidate
             const candidate = candidates[i];
             // get all cards
-            let allCards = [];
-            for (let i = 0; i < this.board.hand.length; i++) {allCards.push(this.board.hand[i]);}
-            for (let i = 0; i < candidate.hand.length; i++) {allCards.push(candidate.hand[i]);}
-            // get all hands
+            // let allCards = [];
+            // for (let i = 0; i < this.board.hand.length; i++) {allCards.push(this.board.hand[i]);}
+            // for (let i = 0; i < candidate.hand.length; i++) {allCards.push(candidate.hand[i]);}
+            let allCards = [...this.board.hand, ...candidate.hand]; // small ace
+            let allCardsBigAce = [...allCards]; // big ace
+            for (let i = 0; i < allCardsBigAce.length; i++) {
+                const card = allCardsBigAce[i];
+                if (card.value == 1) {allCardsBigAce[i] = new Card(card.suit, 14);}
+            }
+            // get all hands. This will often have duplicates but that shouldn't be a problem (pls)
             let allHands = [];
-            for (let i = 0; i < allCards.length-1; i++) {
+            for (let i = 0; i < allCards.length-1; i++) { // small ace
                 for (let j = i+1; j < allCards.length; j++) {
                     var newHand = [...allCards];
+                    newHand.splice(j, 1);
+                    newHand.splice(i, 1);
+                    allHands.push([...newHand]);
+                }
+            }
+            for (let i = 0; i < allCardsBigAce.length-1; i++) { // bid ace
+                for (let j = i+1; j < allCardsBigAce.length; j++) {
+                    var newHand = [...allCardsBigAce];
                     newHand.splice(j, 1);
                     newHand.splice(i, 1);
                     allHands.push([...newHand]);
@@ -366,11 +380,14 @@ class Game {
             let bestHand = allHands[0];
             for (let i = 1; i < allHands.length; i++) {
                 const hand = allHands[i];
+                console.log([...hand]);
+                console.log(evaluateHand([...hand]));
                 const comparison = compareHands([...hand], [...bestHand]);
                 if (comparison) {bestHand = [...hand];}
             }
             bestHands.push(bestHand);
         }
+        console.log([...bestHands]);
         // get best hand and assosiated candidate
         let winners = [candidates[0]];
         let bestHand = [bestHands[0]];
@@ -399,7 +416,6 @@ class Game {
         res += "Blinds: " + this.blinds.toString();
         return res;
     }
-
 }
 
 function playerRequestInput(playerID, action, game = test, amt = 0) {
@@ -435,11 +451,12 @@ function evaluateHand(hand) {
         // check for straight        6
         // check for three of a kind 7
         // check for two pair        8 (second is placed in 9)
+        // check for pair            9
         // check for high card and kickers       10, 11, 12, 13 and 14 in order form high to low
     
     let res = [];
     for (let i = 0; i < 14; i++) { res.push(0); }
-    hand.sort(function(a, b){return b - a});
+    hand.sort(function(a, b){return b.value - a.value});
     var pairs = []
     var testSuit = hand[0].suit;
     res[5] = 1;
@@ -469,18 +486,18 @@ function evaluateHand(hand) {
     }
         // check for two pair        8 (second is placed in 9)
     pairs.sort(function(a, b){return a - b});
-    if (pairs.length > 1) {res[9] = pairs[1]}
+    if (pairs.length > 1) {res[8] = pairs[1]}
         // check for pair            9
-    if (pairs.length > 0) {res[10] = pairs[0];}
+    if (pairs.length > 0) {res[9] = pairs[0];}
         // check for full house      3 and 4
-    if (pairs.length > 1) {if (res[7] != 0 && res[9] != 0) {res[3] = res[7]; res[4] = res[9];}} 
-    else if (res[7] != 0 && res[10] != 0) {res[3] = res[7]; res[4] = res[10];}
+    if (pairs.length > 1) {if (res[7] != 0 && res[8] != 0) {res[3] = res[7]; res[4] = res[8];}} 
+    else if (res[7] != 0 && res[9] != 0) {res[3] = res[7]; res[4] = res[9];}
         // check for straight flush  1
     if (res[5] != 0 && res[6] != 0) {res[1] = res[6];}
         // check for royal flush     0
     if (res[1] == 14) {res[0] = 1;}
         // check for high card and kickers       10, 11, 12, 13 and 14 in order form high to low
-    for (let i = 0; i < hand.length; i++) { res[11+i] = hand[i]; }
+    for (let i = 0; i < hand.length; i++) { res[10+i] = hand[i].value; }
     
     return res;
 }
