@@ -447,12 +447,12 @@ function evaluateHand(hand) {
         // check for straight flush  1
         // check for four of a kind  2
         // check for full house      3 and 4
-        // check for flush           5
+        // check for flush           5 -
         // check for straight        6
-        // check for three of a kind 7
-        // check for two pair        8 (second is placed in 9)
-        // check for pair            9
-        // check for high card and kickers       10, 11, 12, 13 and 14 in order form high to low
+        // check for three of a kind 7 
+        // check for two pair        8 (second is placed in 9) -
+        // check for pair            9 -
+        // check for high card and kickers       10, 11, 12, 13 and 14 in order form high to low  -
     
     let res = [];
     for (let i = 0; i < 14; i++) { res.push(0); }
