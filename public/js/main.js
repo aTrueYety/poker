@@ -3,7 +3,6 @@ class Holder {
         this.hand = hand;
     }
 }
-//console.log((-1+8)%(8))
 
 class Player extends Holder {
     constructor(playerID, name, bank, hand = []) {
@@ -134,7 +133,7 @@ class Game {
                 const prevRaiseIdx = (playerSpot-1+this.players.length)%this.players.length;
                 const prevCallIdx = (playerSpot-2+this.players.length)%this.players.length;
                 const minRaise = this.players[prevRaiseIdx].turnPot - this.players[prevCallIdx].turnPot; // find min raise
-                if (amt <= minRaise) {return false;} // if raise amount is 0 then raise is not valid
+                if (amt < minRaise) {return false;} // if raise amount is 0 then raise is not valid
                 var topPot = 0;
                 var otherBettOrRaise = false;
                 for (let i = 0; i < this.players.length; i++) {
@@ -188,7 +187,7 @@ class Game {
     }
     bumpBlindTurn(amt = 1) {
         this.blindTurn += amt;
-        this.blindTurn %= this.players.length;
+        this.blindTurn = (this.blindTurn+this.players.length) % this.players.length;
     }
     oppdaterPot() {
         let sum = 0;
@@ -261,6 +260,7 @@ class Game {
         for (let i = 0; i < this.players.length; i++) {
             const player = this.players[i];
             player.lastAction = null;
+            player.roundPot += player.turnPot;
             player.turnPot = 0;
         }
         // reset turn
@@ -270,6 +270,7 @@ class Game {
     startRound() {
         this.deck = new Deck();
         this.pot = 0;
+        this.board.hand = []; // reset board
         for (let i = 0; i < this.players.length; i++) {
             const player = this.players[i];
             player.hand = []; // reset hand
@@ -279,6 +280,7 @@ class Game {
             player.lastAction = null; // reset last action
             player.turnPot = 0; // reset player pot
         }
+        this.turn = this.blindTurn; // set turn to blindTurn
         for (let i = 0; i < this.blinds.length; i++) { // deal blinds
             const player = this.players[(this.blindTurn+i)%this.players.length];
             const amt = Math.min(this.blinds[i], player.bank);
@@ -289,33 +291,46 @@ class Game {
     }
     endRound() { // this assumes all player in game not folded have the sama amount of money in the pot or are all in
         console.log("endRound");
+        // finish roundpot
+        for (let i = 0; i < this.players.length; i++) {
+            const player = this.players[i];
+            player.roundPot += player.turnPot;
+            player.turnPot = 0;
+        }
         // find the winners and give them the money $$$$$$$$$$$$$$$
+        // give the winner the money
+            // get the winner(s) with least money in the pot and put them in array 'a'
+            // get the player pot of an alement in 'a' and put the value in amount.
+            // make sidepot. Put 'amount' money from each playerPot into the sidepot.
+            // equaly share the sidepot too all winners. Remove 'a' form winners as they are fully paid now.
+            // repeat until all winners are paid
         let playersToInclude = [...this.players];
         do {
             let winners = [...this.getWinners(playersToInclude)];
             winners.forEach(winner => { playersToInclude.splice(playersToInclude.indexOf(winner), 1); });  // remove winners from playersToInclude
-            console.log([...winners]);
-            console.log(this.board.hand);
-            this.players.forEach(player => { console.log(player.hand) });
             do {
                 // get the winner(s) with least money in the pot and put them in array minPotWinners
                 let minPotWinners = [winners[0]];
                 for (let i = 0; i < winners.length; i++) {
                     const winner = winners[i];
-                    if (winner.turnPot < minPotWinners[0].turnPot) {minPotWinners = [winner];}
-                    if (winner.turnPot == minPotWinners[0].turnPot) {minPotWinners.push(winner);}
+                    if (winner.roundPot < minPotWinners[0].roundPot) {minPotWinners = [winner];}
+                    if (winner.roundPot == minPotWinners[0].roundPot && winner != minPotWinners[0]) {minPotWinners.push(winner);}
                 }
-                let minWinnerPot = minPotWinners[0].turnPot; // get the player pot of an alement in minPotWinners
+                let minWinnerPot = minPotWinners[0].roundPot; // get the player pot of an alement in minPotWinners
                 let sidepot = 0;
                 for (let i = 0; i < this.players.length; i++) { // Put money from each playerPot into the sidepot.
                     const player = this.players[i];
-                    const amt = Math.min(player.turnPot, minWinnerPot);
+                    const amt = Math.min(player.roundPot, minWinnerPot);
                     sidepot += amt;
-                    player.turnPot -= amt;
+                    player.roundPot -= amt;
                 }
                 // equaly share the sidepot too all winners. Remove minPotWinners form winners as they are fully paid now.
-                const share = Math.floor(sidepot/minPotWinners.length); // idk what to do with the rest
-                for (let i = 0; i < winners.length; i++) { winners[i].bank += share; }
+                const share = Math.floor(sidepot/winners.length); // idk what to do with the rest
+                for (let i = 0; i < winners.length; i++) { 
+                    winners[i].bank += share; 
+                    console.log(winners[i])
+                    console.log("won: " + share);
+                }
                 for (let i = 0; i < minPotWinners.length; i++) {
                     const toRemove = minPotWinners[i];
                     winners.splice(winners.indexOf(toRemove), 1);
@@ -324,16 +339,20 @@ class Game {
             this.oppdaterPot();
         } while (this.pot > 0);
         
-        // give the winner the money
-            // get the winner(s) with least money in the pot and put them in array 'a'
-            // get the player pot of an alement in 'a' and put the value in amount.
-            // make sidepot. Put 'amount' money from each playerPot into the sidepot.
-            // equaly share the sidepot too all winners. Remove 'a' form winners as they are fully paid now.
-            // repeat until all winners are paid
-        // start a new game startRound()
         // ckeck if a player lost and kick them
-        //        this.players.pop(   )
-        // this.bumpBlindTurn();     fiks dette med at player blir kicked
+        let blindTurnOffset = 0;
+        for (let i = 0; i < this.players.length; i++) {
+            const player = this.players[i];
+            if (player.bank <= 0) {
+                let playerIndex = this.players.indexOf(player);
+                this.players.splice(playerIndex, 1);
+                console.log("Player lost: " + player.name);
+                if (playerIndex <= this.blindTurn) {blindTurnOffset--;} // could be just <. Needs testing.
+            }
+        }
+        this.bumpBlindTurn(1+blindTurnOffset);
+        // start a new game 
+        this.startRound()
     }
 
     // if the winner(s) are all in then run this again with all players without the winner(s) to find where the eventual rest of pot should go
@@ -380,14 +399,13 @@ class Game {
             let bestHand = allHands[0];
             for (let i = 1; i < allHands.length; i++) {
                 const hand = allHands[i];
-                console.log([...hand]);
-                console.log(evaluateHand([...hand]));
+                // console.log([...hand]);
+                // console.log(evaluateHand([...hand]));
                 const comparison = compareHands([...hand], [...bestHand]);
                 if (comparison) {bestHand = [...hand];}
             }
             bestHands.push(bestHand);
         }
-        console.log([...bestHands]);
         // get best hand and assosiated candidate
         let winners = [candidates[0]];
         let bestHand = [bestHands[0]];
@@ -423,7 +441,9 @@ function playerRequestInput(playerID, action, game = test, amt = 0) {
     sender = game.findPlayer(playerID);
     if (sender == null) {console.log("Sender not found"); return false;} // if player not found return false
     amt = document.getElementsByTagName("input")[0].value; // temporary input!!!
-    const result = game.playerInput(sender, action, parseInt(amt))
+    amt = parseInt(amt);
+    if (isNaN(amt)) {amt = 0;}
+    const result = game.playerInput(sender, action, amt)
     console.log("playerRequestInput: " + result);
 }
 
@@ -431,7 +451,7 @@ function compareHands(hand1, hand2) /*Returns true if hand one is greater or fal
     const hand1Value = evaluateHand(hand1);
     const hand2Value = evaluateHand(hand2);
     for (let i = 0; i < hand1Value.length; i++) {
-        if (hand1Value[i] > hand2Value[i]) {return true;}
+        if (hand1Value[i] > hand2Value[i]) {return true;} // impliment console.log hva som gjorde at spiller vant
         if (hand1Value[i] < hand2Value[i]) {return false;}
     }
     return 0;
@@ -448,7 +468,7 @@ function evaluateHand(hand) {
         // check for four of a kind  2
         // check for full house      3 and 4
         // check for flush           5 -
-        // check for straight        6
+        // check for straight        6 -
         // check for three of a kind 7 
         // check for two pair        8 (second is placed in 9) -
         // check for pair            9 -
@@ -506,3 +526,11 @@ console.log("Hello World!")
 let test = new Game([new Player("51355", "Erik", 2000), new Player("749720", "Markus", 1000)]);
 test.startRound();
 //console.log(test.toString());
+playerRequestInput('51355', 'call')
+playerRequestInput('749720', 'check')
+playerRequestInput('51355', 'check')
+playerRequestInput('749720', 'check')
+playerRequestInput('51355', 'check')
+playerRequestInput('749720', 'check')
+playerRequestInput('51355', 'check')
+playerRequestInput('749720', 'check')
