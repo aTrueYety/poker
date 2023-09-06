@@ -54,7 +54,6 @@ app.ws("/gameStream", function(ws, req) {
     });
 
     ws.on("message", function(data){ //send chat to all users
-        console.log(data);
         let message;
         try{
             message = JSON.parse(data)
@@ -71,7 +70,26 @@ app.ws("/gameStream", function(ws, req) {
             case "gameAction": //game action
                 //send data to game class
                 //pass through res
-                
+                console.log(message);
+                switch(message.action){
+                    //actions
+                    case "join":
+                        //check if user already is in game
+                        //check if game is full
+                        //add user to game
+
+                        //get gamestate, get funtion from game class?
+                        let p1 = '{"username": "test1", "cards":{"c1":"h1","c2":"s13"}}';
+                        let p2 = '{"username": "test2", "cards":{"c1":"c8","c2":"d11"}}';
+                        let p3 = '{"username": "test2", "cards":{"c1":"c8","c2":"d11"}}';
+                        let p = '{"p1":'+p1+',"p2":'+p2+',"p3":'+p3+'}';
+                        let cards = '{"c1":"h1","c2":"s1","c3":"c3","c4":"d4","c5":"h13"}';
+                        let gameState = '{"players":'+p+',"centerCards":'+cards+', "pot": 0,"currBet": 0,"currPlayer": 1,"currButtons": ["check","bet","fold"]}';
+                        //send gamestate to user
+                        ws.send('{"type":"gameState","gameState":'+gameState+'}');
+                        break;
+                }
+
                 //should be formated as {"type":"gameAction","action":"action","data":"data"}
                 break;
             
@@ -128,14 +146,15 @@ app.post("/setName/:username", function(req, res) {
     }
     req.session.username = req.params.username;
     users[req.sessionID]["username"] = req.params.username;
-    req.session.save();
+    req.session.save(function(err) {
+    });
     res.send("ok");
 });
 
 function checkUsername(username){
     //check if username is valid
 
-    //parse for html or script tags
+    //parse for html, script tags, etc.
 
     //check if username is taken
     Object.values(users).forEach(user => {
