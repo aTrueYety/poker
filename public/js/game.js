@@ -13,16 +13,113 @@ testCards.push(new Card("Diamonds", 5));
 let board = document.getElementById("board"); //get board
 
 board.innerHTML = "<img src='render/assets/board.jpeg'>";
+let gamestate = {};
 
-for(let i = 1; i < 6; i++){ //get and render center cards
-    let card = document.getElementById("c"+i);
-    card.innerHTML = "<img src='render/assets/cards/"+testCards[i-1].suit+"/"+testCards[i-1].value+".jpg'> <div class=cardOutline></div>";
+function render(gamestate){
+    let backCard = "<img src='render/assets/cards/Spades/14.jpg'> <div class=cardOutline></div>";
+
+    //render center cards
+    for(let i = 1; i < 6; i++){
+        let card = document.getElementById("c"+i);
+        let suit;
+        let value;
+
+        e = getSuitValue(gamestate.centerCards["c"+i]);
+        suit = e[0];
+        value = e[1];
+        card.innerHTML = "<img src='render/assets/cards/"+suit+"/"+value+".jpg'> <div class=cardOutline></div>";
+    }
+
+    let numPlayers = Object.values(gamestate.players).length; //get number of players
+    //render player positions
+
+    let prPlayerAngle = 2*Math.PI/numPlayers; //angle between players
+
+    for(let i = 1; i < numPlayers; i++){ //calculate and render player positions
+        //the user has a offsett of 30vh from the bottom and is centered 50vw from the left
+        //therefore, we need to calculate a new for the other players based on these values
+        let playeryPos = Math.cos(prPlayerAngle*i); //y axis
+        let playerxPos = Math.sin(prPlayerAngle*i); //x axis
+
+        let player = document.getElementById("players");
+
+        player.innerHTML += getPlayerTemplate(i+1,"Player "+(i+1), 1000, 100, playerxPos, playeryPos)
+
+        let pc1 = document.getElementById("p"+(i+1)+"c1");
+        let pc2 = document.getElementById("p"+(i+1)+"c2");
+
+        for(let j= 1; j<3; j++){ //get and render player cards
+            let card = document.getElementById("p"+(i+1)+"c"+j);
+    
+            let e = getSuitValue(gamestate.players["p"+(i)].cards["c"+j]);
+            let suit = e[0];
+            let value = e[1];
+    
+    
+            card.innerHTML = "<img src='render/assets/cards/"+suit+"/"+value+".jpg'> <div class=cardOutline></div>";
+        }
+    }
+
+
+    //render user cards
+    for(let i = 1; i<3; i++){ //get and render player cards
+        let card = document.getElementById("p1c"+i);
+
+        let e = getSuitValue(gamestate.players["p1"].cards["c"+i]);
+        let suit = e[0];
+        let value = e[1];
+
+
+        card.innerHTML = "<img src='render/assets/cards/"+suit+"/"+value+".jpg'> <div class=cardOutline></div>";
+    }
+
+    //render user buttons
+
+    //for now the buttons stay the same. Change later. 
+    //You cant both call and check, and you cant both raise and bet.
+    //Simply change the text of the check button and interpret it as a call. 
+    //This makes room for the bet field to be bigger.
+    //The bet text of the bet button will be replaced with raise in situations where it is nessessary.
+
+    let opacity = "70%"
+    if(gamestate.currPlayer === 1){
+        opacity = "100%"
+    }
+    let buttons = document.getElementsByClassName("userButtons");
+    for(let i = 0; i < buttons.length; i++){
+        buttons[i].style.opacity = opacity;
+    }
+    
 }
 
-for(let i = 1; i<3; i++){ //get and render player cards
-    let card = document.getElementById("p1c"+i);
-    card.innerHTML = "<img src='render/assets/cards/"+testCards[i-1].suit+"/"+testCards[i-1].value+".jpg'> <div class=cardOutline></div>";
+function getSuitValue(card){
+    let suit;
+    let value;
+
+    if(card === "back"){
+        suit = "Spades";
+        value = 14;
+    }
+    else{
+        switch(card.charAt(0)){
+            case "s":
+                suit = "Spades";
+                break;
+            case "h":
+                suit = "Hearts";
+                break;
+            case "c":
+                suit = "Clubs";
+                break;
+            case "d":
+                suit = "Diamonds";
+                break;
+        }
+        value = parseInt(card.slice(1))
+    }
+    return [suit,value]
 }
+
 
 function getPlayerTemplate(playerNum,username, chips, bet, playerxPos, playeryPos){
 
@@ -63,27 +160,6 @@ function getCurrButtons(){
 
 
 let players = 4; //test with different amount of players
-let backCard = "<img src='render/assets/cards/Spades/14.jpg'> <div class=cardOutline></div>";
-
-let prPlayerAngle = 2*Math.PI/players; //angle between players
-
-for(let i = 1; i < players; i++){ //calculate and render player positions
-    //the user has a offsett of 30vh from the bottom and is centered 50vw from the left
-    //therefore, we need to calculate a new for the other players based on these values
-    let playeryPos = Math.cos(prPlayerAngle*i); //y axis
-    let playerxPos = Math.sin(prPlayerAngle*i); //x axis
-
-    let player = document.getElementById("players");
-
-    player.innerHTML += getPlayerTemplate(i+1,"Player "+(i+1), 1000, 100, playerxPos, playeryPos)
-    
-    let pc1 = document.getElementById("p"+(i+1)+"c1");
-    let pc2 = document.getElementById("p"+(i+1)+"c2");
-
-    pc1.innerHTML = backCard;
-    pc2.innerHTML = backCard;
-
-}
 
 //webscocket setup
 var socket = new WebSocket("ws://" + window.location.href.split("/")[2] + "/gameStream");
@@ -105,7 +181,12 @@ socket.onmessage = function (event) {
             //should be formated as {"type":"chat","name":"username","chatMessage":"message""}
             break;
 
-        case "gameAction":
+        case "gameAction": //when another a player has done an action
+
+            break;
+
+        case "gameState": //joining game / starting new game
+            render(data.gameState); //render game
             break;
         
         case "error":
@@ -149,7 +230,7 @@ function displayChat(chatMessage){
 
 function sendHttpRequest(link, cb){
     let xhp = new XMLHttpRequest(); // initierer en ny request
-    xhp.responseType = 'text';
+    xhp.responseType = 'text';  
   
     xhp.open("POST",link ,true); //man setter url til meldingen
     xhp.send();
@@ -165,10 +246,10 @@ function sendHttpRequest(link, cb){
         cb("err: timeout")
 		return
     }
-
 }
 
 var chat = []; //chat array
+let isTurn = false; //users turn. Migrate to class?
 
 window.onload = function(){ //onload get typebox
     chatinput = document.getElementById("typebox");
@@ -199,7 +280,7 @@ window.onload = function(){ //onload get typebox
                 }
             });
         }
-    })
+    });
     
     //send chat on enter
     chatinput.addEventListener("keydown",function(event){
@@ -208,5 +289,29 @@ window.onload = function(){ //onload get typebox
             document.getElementById("typebox").value = "";
             sendChat(inputvalue);
         }
-    })
+    });
+
+    //uiButtons
+    document.getElementById("fold").onclick = function(){
+        socket.send('{"type":"gameAction","action":"fold"}');
+    };
+
+    document.getElementById("check").onclick = function(){
+        socket.send('{"type":"gameAction","action":"check"}');
+    };
+
+    document.getElementById("call").onclick = function(){
+        socket.send('{"type":"gameAction","action":"call"}');
+    };
+
+    document.getElementById("raise").onclick = function(){
+        if(isNaN(parseInt(document.getElementById("raiseInput").value))){
+            document.getElementById("raiseInput").value = "";
+        } else {
+            socket.send('{"type":"gameAction","action":"check","amount":"'+document.getElementById("raiseInput").value+'"}'); 
+            document.getElementById("raiseInput").value = "";
+        }
+    };
+
+    socket.send('{"type":"gameAction","action":"join"}')
 };
