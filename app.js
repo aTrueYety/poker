@@ -8,6 +8,10 @@ const app = express();
 //websocket
 var expressWs = require('express-ws')(app);
 
+//get main script
+var mainJS = require('./main.js');
+mainJS.test();
+
 //session init
 const session = require('express-session');
 const e = require('express');
@@ -79,12 +83,30 @@ app.ws("/gameStream", function(ws, req) {
                         //add user to game
 
                         //get gamestate, get funtion from game class?
-                        let p1 = '{"username": "test1", "cards":{"c1":"h1","c2":"s13"}}';
-                        let p2 = '{"username": "test2", "cards":{"c1":"c8","c2":"d11"}}';
-                        let p3 = '{"username": "test2", "cards":{"c1":"c8","c2":"d11"}}';
-                        let p = '{"p1":'+p1+',"p2":'+p2+',"p3":'+p3+'}';
-                        let cards = '{"c1":"h1","c2":"s1","c3":"c3","c4":"d4","c5":"h13"}';
-                        let gameState = '{"players":'+p+',"centerCards":'+cards+', "pot": 0,"currBet": 0,"currPlayer": 1,"currButtons": ["check","bet","fold"]}';
+                        let test = new mainJS.Game([new mainJS.Player("51355", "Erik", 2000), new mainJS.Player("749720", "Markus", 1000)]);
+                        let p = '{' // '{"p1":'+p1+',"p2":'+p2+',"p3":'+p3+'}';
+                        for (let i = 0; i < test.players.length; i++) {
+                            const player = test.players[i];
+                            let p_cards = '{';
+                            for (let i = 0; i < player.hand.length; i++) {
+                                const card = player.hand[i];
+                                let short = card.value + card.suit[0];
+                                p_cards += '"c'+(i+1)+'":"'+short+'",';
+                            }
+                            p_cards += '}';
+                            let p_cur = '{"username": "'+player.username+'", "cards":'+p_cards+'}'; // '{"username": "test1", "cards":{"c1":"h1","c2":"s13"}}';
+                            p += '"p'+(i+1)+'":'+p_cur+',';
+                        }
+                        p += '}';
+                        let board_cards = '{'; // '{"c1":"h1","c2":"s1","c3":"c3","c4":"d4","c5":"h13"}'
+                        for (let i = 0; i < test.board.hand.length; i++) {
+                            const card = test.board.hand[i];
+                            let short = card.value + card.suit[0];
+                            p_cards += '"c'+(i+1)+'":"'+short+'",';
+                        }
+                        board_cards += '}';
+                        test.oppdaterPot();
+                        let gameState = '{"players":'+p+',"centerCards":'+board_cards+', "pot": '+test.pot+',"currBet": 0,"currPlayer": '+test.turn+'}';
                         //send gamestate to user
                         ws.send('{"type":"gameState","gameState":'+gameState+'}');
                         break;

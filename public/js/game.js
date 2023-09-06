@@ -1,16 +1,19 @@
 let window_width = window.innerWidth;
 let window_heigth = window.innerHeight;
 
-let testCards = []
-
-//test
-testCards.push(new Card("Spades", 1));
-testCards.push(new Card("Spades", 2));
-testCards.push(new Card("Hearts", 3));
-testCards.push(new Card("Clubs", 4));
-testCards.push(new Card("Diamonds", 5));
 
 let board = document.getElementById("board"); //get board
+
+
+class Card {
+    constructor(suit, value) {
+        this.suit = suit;
+        this.value = value;
+    }
+    toString() {
+        return this.value + " of " + this.suit;
+    }
+}
 
 board.innerHTML = "<img src='render/assets/board.jpeg'>";
 let gamestate = {};

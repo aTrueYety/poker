@@ -440,7 +440,6 @@ function playerRequestInput(playerID, action, game = test, amt = 0) {
     // try to find player
     sender = game.findPlayer(playerID);
     if (sender == null) {console.log("Sender not found"); return false;} // if player not found return false
-    amt = document.getElementsByTagName("input")[0].value; // temporary input!!!
     amt = parseInt(amt);
     if (isNaN(amt)) {amt = 0;}
     const result = game.playerInput(sender, action, amt)
@@ -522,15 +521,9 @@ function evaluateHand(hand) {
     return res;
 }
 
-console.log("Hello World!")
-let test = new Game([new Player("51355", "Erik", 2000), new Player("749720", "Markus", 1000)]);
-test.startRound();
-//console.log(test.toString());
-playerRequestInput('51355', 'call')
-playerRequestInput('749720', 'check')
-playerRequestInput('51355', 'check')
-playerRequestInput('749720', 'check')
-playerRequestInput('51355', 'check')
-playerRequestInput('749720', 'check')
-playerRequestInput('51355', 'check')
-playerRequestInput('749720', 'check')
+function test() {
+    console.log("test");
+}
+
+module.exports = {Game, Player, Board, Card, Deck, compareHands, evaluateHand, test, playerRequestInput};
+//test.startRound();
