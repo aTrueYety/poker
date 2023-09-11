@@ -83,15 +83,21 @@ app.ws("/gameStream", function(ws, req) {
                         //add user to game
 
                         //get gamestate, get funtion from game class?
-                        let test = new mainJS.Game([new mainJS.Player("51355", "Erik", 2000), new mainJS.Player("749720", "Markus", 1000)]);
+                        let test = new mainJS.Game([new mainJS.Player("51355", "Erik", 2000), new mainJS.Player("749720", "Markus", 1000)])
+                        test.startRound();
                         let p = '{' // '{"p1":'+p1+',"p2":'+p2+',"p3":'+p3+'}';
                         for (let i = 0; i < test.players.length; i++) {
                             const player = test.players[i];
                             let p_cards = '{';
                             for (let i = 0; i < player.hand.length; i++) {
                                 const card = player.hand[i];
-                                let short = card.value + card.suit[0];
-                                p_cards += '"c'+(i+1)+'":"'+short+'",';
+                                let short = card.suit[0]+card.value;
+
+                                if(i!=player.hand.length-1){
+                                    p_cards += '"c'+(i+1)+'":"'+short+'",';
+                                } else {
+                                    p_cards += '"c'+(i+1)+'":"'+short+'"';
+                                }
                             }
                             p_cards += '}';
                             let p_cur = '{"username": "'+player.username+'", "cards":'+p_cards+'}'; // '{"username": "test1", "cards":{"c1":"h1","c2":"s13"}}';
@@ -101,14 +107,28 @@ app.ws("/gameStream", function(ws, req) {
                             }
                         }
                         p += '}';
-                        console.log(p);
-
+                        
+                        console.log(test.board.hand)
                         let board_cards = '{'; // '{"c1":"h1","c2":"s1","c3":"c3","c4":"d4","c5":"h13"}'
                         for (let i = 0; i < test.board.hand.length; i++) {
                             const card = test.board.hand[i];
-                            let short = card.value + card.suit[0];
-                            p_cards += '"c'+(i+1)+'":"'+short+'",';
+                            let short = card.suit[0]+card.value;
+                            
+                            board_cards += '"c'+(i+1)+'":"'+short+'"';
+                            if(i!=test.board.hand.length-1){
+                                board_cards += ","
+                            }
                         }
+
+                        for (let i = 4; i >  test.board.hand.length-1; i--) {
+                            const card = "back"
+                            board_cards += '"c'+(i+1)+'":"'+card+'"';
+
+                            if(i!=test.board.hand.length){
+                                board_cards += ","
+                            }
+                        }
+
                         board_cards += '}';
                         console.log(board_cards);
 
@@ -122,7 +142,7 @@ app.ws("/gameStream", function(ws, req) {
                 //should be formated as {"type":"gameAction","action":"action","data":"data"}
                 break;
             
-            default: //if the type is not recognized, err
+            default: //if the type is not recognized, err. Should never happen, but just in case
                 console.error("error parsing json message");
                 ws.send('{"type":"error","message":"'+message.type+' is not a valid message type"}');
                 break;

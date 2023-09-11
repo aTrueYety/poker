@@ -48,16 +48,17 @@ function render(gamestate){
 
         player.innerHTML += getPlayerTemplate(i+1,"Player "+(i+1), 1000, 100, playerxPos, playeryPos)
 
-        let pc1 = document.getElementById("p"+(i+1)+"c1");
-        let pc2 = document.getElementById("p"+(i+1)+"c2");
+        //let pc1 = document.getElementById("p"+(i+1)+"c1");
+        //let pc2 = document.getElementById("p"+(i+1)+"c2");
+
+        console.log(gamestate.players)
 
         for(let j= 1; j<3; j++){ //get and render player cards
             let card = document.getElementById("p"+(i+1)+"c"+j);
     
-            let e = getSuitValue(gamestate.players["p"+(i)].cards["c"+j]);
+            let e = getSuitValue(gamestate.players["p"+(i+1)].cards["c"+j]);
             let suit = e[0];
             let value = e[1];
-    
     
             card.innerHTML = "<img src='render/assets/cards/"+suit+"/"+value+".jpg'> <div class=cardOutline></div>";
         }
@@ -99,22 +100,24 @@ function getSuitValue(card){
     let suit;
     let value;
 
+    console.log(card)
+
     if(card === "back"){
         suit = "Spades";
         value = 14;
     }
     else{
         switch(card.charAt(0)){
-            case "s":
+            case "S":
                 suit = "Spades";
                 break;
-            case "h":
+            case "H":
                 suit = "Hearts";
                 break;
-            case "c":
+            case "C":
                 suit = "Clubs";
                 break;
-            case "d":
+            case "D":
                 suit = "Diamonds";
                 break;
         }
@@ -189,6 +192,7 @@ socket.onmessage = function (event) {
             break;
 
         case "gameState": //joining game / starting new game
+            console.log(data.gameState)
             render(data.gameState); //render game
             break;
         
