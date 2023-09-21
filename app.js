@@ -1,16 +1,15 @@
 const path = require('path') //path
 
 //express init
-const port = 3000   
+const port = 4000   
 const express = require('express');
 const app = express();
 
 //websocket
 var expressWs = require('express-ws')(app);
 
-//get main script
+//get main (game) script
 var mainJS = require('./main.js');
-mainJS.test();
 
 //session init
 const session = require('express-session');
@@ -74,7 +73,6 @@ app.ws("/gameStream", function(ws, req) {
             case "gameAction": //game action
                 //send data to game class
                 //pass through res
-                console.log(message);
                 switch(message.action){
                     //actions
                     case "join":
@@ -82,58 +80,10 @@ app.ws("/gameStream", function(ws, req) {
                         //check if game is full
                         //add user to game
 
-                        //get gamestate, get funtion from game class?
-                        let test = new mainJS.Game([new mainJS.Player("51355", "Erik", 2000), new mainJS.Player("749720", "Markus", 1000)])
-                        test.startRound();
-                        let p = '{' // '{"p1":'+p1+',"p2":'+p2+',"p3":'+p3+'}';
-                        for (let i = 0; i < test.players.length; i++) {
-                            const player = test.players[i];
-                            let p_cards = '{';
-                            for (let i = 0; i < player.hand.length; i++) {
-                                const card = player.hand[i];
-                                let short = card.suit[0]+card.value;
+                        game.oppdaterPot(); //pot???
 
-                                if(i!=player.hand.length-1){
-                                    p_cards += '"c'+(i+1)+'":"'+short+'",';
-                                } else {
-                                    p_cards += '"c'+(i+1)+'":"'+short+'"';
-                                }
-                            }
-                            p_cards += '}';
-                            let p_cur = '{"username": "'+player.username+'", "cards":'+p_cards+'}'; // '{"username": "test1", "cards":{"c1":"h1","c2":"s13"}}';
-                            p += '"p'+(i+1)+'":'+p_cur;
-                            if (i != test.players.length-1) {
-                                p += ',';
-                            }
-                        }
-                        p += '}';
-                        
-                        console.log(test.board.hand)
-                        let board_cards = '{'; // '{"c1":"h1","c2":"s1","c3":"c3","c4":"d4","c5":"h13"}'
-                        for (let i = 0; i < test.board.hand.length; i++) {
-                            const card = test.board.hand[i];
-                            let short = card.suit[0]+card.value;
-                            
-                            board_cards += '"c'+(i+1)+'":"'+short+'"';
-                            if(i!=test.board.hand.length-1){
-                                board_cards += ","
-                            }
-                        }
+                        let gameState = getGameState(game); //get gamestate
 
-                        for (let i = 4; i >  test.board.hand.length-1; i--) {
-                            const card = "back"
-                            board_cards += '"c'+(i+1)+'":"'+card+'"';
-
-                            if(i!=test.board.hand.length){
-                                board_cards += ","
-                            }
-                        }
-
-                        board_cards += '}';
-                        console.log(board_cards);
-
-                        test.oppdaterPot();
-                        let gameState = '{"players":'+p+',"centerCards":'+board_cards+', "pot": '+test.pot+',"currBet": 0,"currPlayer": '+test.turn+'}';
                         //send gamestate to user
                         ws.send('{"type":"gameState","gameState":'+gameState+'}');
                         break;
@@ -220,3 +170,54 @@ function checkUsername(username){
 
 // ----------------- GAME ----------------- //
 
+const game = new mainJS.Game([new mainJS.Player("51355", "Erik", 2000), new mainJS.Player("749720", "Markus", 1000)])
+game.startRound();
+
+function getGameState(game){ //all of this just works
+    let p = '{' // '{"p1":'+p1+',"p2":'+p2+',"p3":'+p3+'}';
+    for (let i = 0; i < game.players.length; i++) {
+        const player = game.players[i];
+        let p_cards = '{';
+        for (let i = 0; i < player.hand.length; i++) {
+            const card = player.hand[i];
+            let short = card.suit[0]+card.value;
+
+            if(i!=player.hand.length-1){
+                p_cards += '"c'+(i+1)+'":"'+short+'",';
+            } else {
+                p_cards += '"c'+(i+1)+'":"'+short+'"';
+            }
+        }
+        p_cards += '}';
+        let p_cur = '{"username": "'+player.username+'", "cards":'+p_cards+'}'; // '{"username": "test1", "cards":{"c1":"h1","c2":"s13"}}';
+        p += '"p'+(i+1)+'":'+p_cur;
+        if (i != game.players.length-1) {
+            p += ',';
+        }
+    }
+    p += '}';
+    
+    let board_cards = '{'; // '{"c1":"h1","c2":"s1","c3":"c3","c4":"d4","c5":"h13"}'
+    for (let i = 0; i < game.board.hand.length; i++) {
+        const card = game.board.hand[i];
+        let short = card.suit[0]+card.value;
+        
+        board_cards += '"c'+(i+1)+'":"'+short+'"';
+        if(i!=game.board.hand.length-1){
+            board_cards += ","
+        }
+    }
+
+    for (let i = 4; i >  game.board.hand.length-1; i--) {
+        const card = "back"
+        board_cards += '"c'+(i+1)+'":"'+card+'"';
+
+        if(i!=game.board.hand.length){
+            board_cards += ","
+        }
+    }
+
+    board_cards += '}';
+
+    return '{"players":'+p+',"centerCards":'+board_cards+', "pot": '+game.pot+',"currBet": 0,"currPlayer": '+game.turn+'}';
+}
