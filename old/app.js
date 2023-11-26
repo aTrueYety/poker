@@ -42,6 +42,7 @@ app.listen(port)
 console.log("server started: http://localhost:"+port)
 
 app.get('/', function(req, res) {
+    console.log(req)
     res.sendFile(path.join(__dirname + '/public/html/index.html'));
 });
 

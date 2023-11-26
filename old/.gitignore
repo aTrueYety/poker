@@ -1,0 +1,10 @@
+#session store
+database/sessions.db 
+
+#mac
+.DS_STORE
+
+#node modules
+node_modules/
+package-lock.json
+package.json

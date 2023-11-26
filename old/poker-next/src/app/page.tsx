@@ -6,7 +6,7 @@ _chats = [];
 
 _chats.push("test1");
 
-export default function Home() {
+export default function Home() : any{
   	return (
     	<main className="flex min-h-screen flex-row items-center">
 			<div className='flex min-h-screen w-9/12 max-h-screen'>
