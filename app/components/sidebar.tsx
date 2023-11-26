@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, animate, useAnimate } from "framer-motion";
+import { motion, animate, useAnimate, stagger } from "framer-motion";
 import { useState, useEffect } from "react";
 
 export default function Sidebar() {
@@ -41,22 +41,23 @@ export default function Sidebar() {
 
 function SidebarContent({ isOpen }: { isOpen: boolean; }) {
     const [contentAnimationScope, animateContent] = useAnimate();
+    const staggerItems = stagger(0.2, { startDelay: 0.4 });
     useEffect(() => {
-        animate(contentAnimationScope.current,
+        animate(".sidebarItemStagger",
             isOpen
-                ? { opacity: 1 }
-                : { opacity: 0 },
+                ? { opacity: 1, x: 0 }
+                : { opacity: 0, x: -20 },
             {
                 duration: 0.2,
                 ease: "easeOut",
-                delay: isOpen ? 0.4 : 0
+                delay: isOpen ? staggerItems : 0
             },
         )
     }, [isOpen]);
 
     return (
         <div className="px-3 py-1 flex flex-col w-52 h-80">
-            <div ref={contentAnimationScope} className="flex flex-col min-w-full opacity-0">
+            <div ref={contentAnimationScope} className="flex flex-col min-w-full">
                 <SidebarItem />
                 <SidebarItem />
             </div>
@@ -67,7 +68,7 @@ function SidebarContent({ isOpen }: { isOpen: boolean; }) {
 
 function SidebarItem() {
     return (
-        <div className="flex items-center">
+        <div className="flex items-center opacity-0 sidebarItemStagger" >
             <div className="ml-2 mr-2">asdasd</div>
         </div>
     )
