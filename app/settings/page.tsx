@@ -1,8 +1,9 @@
 
-export default function Game() {
+export default function Settings() {
     return (
         <div className="flex items-center justify-center">
-            <h1>Play</h1>
+            <h1>Settings</h1>
         </div>
     )
+
 }
