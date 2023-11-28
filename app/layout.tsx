@@ -4,6 +4,7 @@ import './globals.css'
 
 import React from 'react'
 import Sidebar from '../components/sidebar'
+import LayoutWrapper from '@/components/layoutWrapper'
 
 const open = Open_Sans({ subsets: ['latin'] })
 
@@ -18,11 +19,13 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en">
-            <body className={open.className + " min-w-screen min-h-screen p-2 select-none"}>
-                <Sidebar />
-                {children}
-            </body>
-        </html>
+        <LayoutWrapper>
+            <html lang="en">
+                <body className={open.className + " min-w-screen min-h-screen p-2 select-none"}>
+                    <Sidebar />
+                    {children}
+                </body>
+            </html>
+        </LayoutWrapper>
     )
 }

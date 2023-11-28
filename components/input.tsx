@@ -7,8 +7,8 @@ export const Button = ({ variant, children, className, onClick, ...rest }: { var
         <button
             className={
                 variant == "primary"
-                    ? `px-7 py-2 w-full h-full rounded-lg bg-neutral-700 hover:bg-blue-500 text-white ${className}`
-                    : `px-7 py-2 w-full h-full rounded-lg bg-white border-2 hover:bg-blue-700 text-blue-500 border-blue-500 ${className}`
+                    ? `px-7 py-2 max-w-full h-full rounded-lg bg-neutral-700 hover:bg-blue-500 text-white ${className}`
+                    : `px-7 py-2 max-w-full h-full rounded-lg bg-white border-2 hover:bg-blue-700 text-blue-500 border-blue-500 ${className}`
             }
             {...rest}
             onClick={onClick}
@@ -18,7 +18,7 @@ export const Button = ({ variant, children, className, onClick, ...rest }: { var
     );
 }
 
-export const TextInput = ({ placeholder, value, onSubmit, onChange, className }: { placeholder?: string, value?: string, onSubmit?: (s: string) => void, onChange?: (s: string) => void, className?: string }) => {
+export const TextInput = ({ placeholder, value, onSubmit, onChange, className, textCentered }: { placeholder?: string, value?: string, onSubmit?: (s: string) => void, onChange?: (s: string) => void, className?: string, textCentered?: boolean }) => {
     const element = useRef<HTMLInputElement>(null);
 
     //placeholder
@@ -52,14 +52,16 @@ export const TextInput = ({ placeholder, value, onSubmit, onChange, className }:
     //function to handle submit
     function handleSubmit(text: string) {
         element?.current?.blur();
+        element?.current ? (element.current.value = "") : null;
         onSubmit ? onSubmit(text) : {};
     }
 
     return (
-        <div className={`w-52 h-full flex flex-row bg-neutral-700 border border-neutral-800 rounded-lg p-1 ${className}`}>
+        <div className={`min-w-52 h-full flex flex-row bg-neutral-700 border border-neutral-800 rounded-lg p-1 ${className}`}>
             <input
                 ref={element}
-                className={`w-full h-full bg-transparent outline-none px-3`}
+                type="text"
+                className={`w-full h-full bg-transparent outline-none px-3 ${textCentered ? " text-center" : ""}}`}
                 placeholder={pl}
                 defaultValue={value}
                 onChange={(e) => {

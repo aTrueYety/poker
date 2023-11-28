@@ -3,7 +3,7 @@ export default function Game() {
     return (
         <div className="flex flex-col items-center justify-center mt-10">
             <div className="flex flex-row items-center justify-center h-20 w-1/2">
-                <TextInput placeholder="Enter game id..." className=" w-10/12" />
+                <TextInput placeholder="Enter game id..." className=" w-10/12 text-center" textCentered={true} />
                 <Button variant={"primary"} className="ml-2 w-2/12">Join</Button>
             </div>
 
