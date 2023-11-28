@@ -18,7 +18,7 @@ export const Button = ({ variant, children, className, onClick, ...rest }: { var
     );
 }
 
-export const TextInput = ({ placeholder, value, onSubmit, onChange, className, textCentered }: { placeholder?: string, value?: string, onSubmit?: (s: string) => void, onChange?: (s: string) => void, className?: string, textCentered?: boolean }) => {
+export const TextInput = ({ placeholder, value, onSubmit, onChange, className, textCentered, onEnterClear, type }: { placeholder?: string, value?: string, onSubmit?: (s: string) => void, onChange?: (s: string) => void, className?: string, textCentered?: boolean, onEnterClear?: boolean, type?: string }) => {
     const element = useRef<HTMLInputElement>(null);
 
     //placeholder
@@ -52,7 +52,7 @@ export const TextInput = ({ placeholder, value, onSubmit, onChange, className, t
     //function to handle submit
     function handleSubmit(text: string) {
         element?.current?.blur();
-        element?.current ? (element.current.value = "") : null;
+        onEnterClear ? element?.current ? (element.current.value = "") : null : null;
         onSubmit ? onSubmit(text) : {};
     }
 
@@ -60,7 +60,7 @@ export const TextInput = ({ placeholder, value, onSubmit, onChange, className, t
         <div className={`min-w-52 h-full flex flex-row bg-neutral-700 border border-neutral-800 rounded-lg p-1 ${className}`}>
             <input
                 ref={element}
-                type="text"
+                type={type ? type : "text"}
                 className={`w-full h-full bg-transparent outline-none px-3 ${textCentered ? " text-center" : ""}}`}
                 placeholder={pl}
                 defaultValue={value}
