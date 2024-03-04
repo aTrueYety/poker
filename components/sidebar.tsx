@@ -76,7 +76,7 @@ function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (is
                 delay: isOpen ? staggerItems : 0
             },
         )
-    }, [isOpen]);
+    }, [isOpen, staggerItems]);
 
     return (
         <div className="py-1 flex flex-col w-52 h-80 ">
@@ -121,8 +121,7 @@ function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (is
                         </svg>
 
                     }
-                        //TODO: change this to the profile page
-                        redirectTo="/users/PROFILE_ID"
+                        redirectTo="/users/me"
                         onClick={() => {
                             setIsOpen(false);
                         }} /> :
@@ -132,7 +131,6 @@ function SidebarContent({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (is
                         </svg>
 
                     }
-                        //TODO: change this to the profile page
                         redirectTo="/login"
                         onClick={() => {
                             setIsOpen(false);
