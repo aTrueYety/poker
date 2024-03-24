@@ -25,7 +25,6 @@ function LayoutWrapper({
     )
 }
 
-
 function createSocket() {
     let hostname;
     if (typeof window !== "undefined") {

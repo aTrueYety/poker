@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, forwardRef } from "react";
 
 export const Button = ({ variant, children, className, onClick, ...rest }: { variant?: String, children?: React.ReactNode, className?: String, onClick?: () => void }) => {
     return (
@@ -18,13 +18,26 @@ export const Button = ({ variant, children, className, onClick, ...rest }: { var
     );
 }
 
-export const TextInput = ({ placeholder, value, onSubmit, onChange, className, textCentered, onEnterClear, type }: { placeholder?: string, value?: string, onSubmit?: (s: string) => void, onChange?: (s: string) => void, className?: string, textCentered?: boolean, onEnterClear?: boolean, type?: string }) => {
-    const element = useRef<HTMLInputElement>(null);
+interface TextInputProps {
+    placeholder?: string;
+    value?: string;
+    onSubmit?: (s: string) => void;
+    onChange?: (s: string) => void;
+    className?: string;
+    textCentered?: boolean;
+    onEnterClear?: boolean;
+    onEnterBlur?: boolean;
+    type?: string;
+}
+
+export const TextInput = forwardRef(function TextInput(props: TextInputProps, ref: any) {
+    let element = useRef<HTMLInputElement>(null);
+    if (ref) element = ref
 
     //placeholder
     let pl = "Placeholder...";
-    if (placeholder) {
-        pl = placeholder;
+    if (props.placeholder) {
+        pl = props.placeholder;
     }
 
     let alwaysAcceptValues = [
@@ -51,21 +64,22 @@ export const TextInput = ({ placeholder, value, onSubmit, onChange, className, t
 
     //function to handle submit
     function handleSubmit(text: string) {
-        element?.current?.blur();
-        onEnterClear ? element?.current ? (element.current.value = "") : null : null;
-        onSubmit ? onSubmit(text) : {};
+        if (props.onEnterBlur) element?.current?.blur();
+
+        props.onEnterClear ? element?.current ? (element.current.value = "") : null : null;
+        props.onSubmit ? props.onSubmit(text) : {};
     }
 
     return (
-        <div className={`min-w-52 h-full flex flex-row bg-neutral-700 border border-neutral-800 rounded-lg p-1 ${className}`}>
+        <div className={`min-w-52 h-full flex flex-row bg-neutral-700 border border-neutral-800 rounded-lg p-1 ${props.className}`}>
             <input
                 ref={element}
-                type={type ? type : "text"}
-                className={`w-full h-full bg-transparent outline-none px-3 ${textCentered ? " text-center" : ""}}`}
+                type={props.type ? props.type : "text"}
+                className={`w-full h-full bg-transparent outline-none px-3 ${props.textCentered ? " text-center" : ""}}`}
                 placeholder={pl}
-                defaultValue={value}
+                defaultValue={props.value}
                 onChange={(e) => {
-                    onChange ? onChange(e.target.value) : null;
+                    props.onChange ? props.onChange(e.target.value) : null;
                 }}
                 onKeyDown={(e) => {
                     e.key === "Enter"
@@ -75,5 +89,5 @@ export const TextInput = ({ placeholder, value, onSubmit, onChange, className, t
             />
         </div>
     );
-};
+});
 

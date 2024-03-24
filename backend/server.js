@@ -6,6 +6,9 @@ import ip from 'ip'
 const app = express()
 const port = 4000
 
+// TEMPORARY SETTINGS
+const deleteLobbyOnEmpty = false;
+
 
 //const hostname = ip.address()
 
@@ -24,9 +27,10 @@ server.listen(port, () => {
 
 
 class Player {
-    constructor(id, username) {
+    constructor(id, username, socket) {
         this.id = id
         this.username = username
+        this.socket = socket
         console.log("player created with id: " + id + " and username: " + username)
     }
 }
@@ -37,8 +41,17 @@ class Lobby {
         this.owner = owner
         this.status = "waiting"
         this.players = []
+        this.messages = []
 
         console.log("lobby created by " + owner + " id: " + id)
+    }
+
+    getMessages() {
+        return this.messages
+    }
+
+    addMessage(author, content) {
+        this.messages.push({ author: author, content: content })
     }
 
     getPlayersAsUsername() {
@@ -53,15 +66,17 @@ class Lobby {
             return
         }
 
+        player.socket.join(this.id)
         this.players.push(player)
     }
 
     removePlayer(id) {
         this.players = this.players.filter(player => {
-            return player === id
+            if (player.id !== id) {
+                player.socket.leave(this.id)
+                return true
+            }
         })
-
-        console.log(this.players)
     }
 
     playerExists(id) {
@@ -97,8 +112,16 @@ class LobbyHandler {
     }
 
     removeLobby(code) {
+        // this is a bit ugly
         this.lobbies = this.lobbies.filter(lobby => {
-            return lobby.id === code
+            if (lobby.id !== code) {
+                // Kick all players
+                lobby.players.forEach(player => {
+                    player.socket.leave(code)
+                    // player.socket.emit("kicked" + lobby.id)
+                })
+                return true
+            }
         })
     }
 
@@ -154,14 +177,12 @@ class LobbyHandler {
 let lobbyHandler = new LobbyHandler()
 
 io.on("connection", socket => {
-    console.log("connected")
     socket.on("fetchGames", data => {
         socket.emit("ongoingGamesStream", lobbyHandler.getGames())
     })
 
 
     socket.on("disconnect", data => {
-        console.log("disconnected")
     })
 
     socket.on("joinGame", (data, callback) => {
@@ -174,7 +195,7 @@ io.on("connection", socket => {
 
         console.log(data)
 
-        lobby.addPlayer(new Player(data.user.id, data.user.username))
+        lobby.addPlayer(new Player(data.user.id, data.user.username, socket))
         callback({ status: "ok" })
 
         io.emit("ongoingGamesStream", lobbyHandler.getGames())
@@ -191,11 +212,10 @@ io.on("connection", socket => {
 
         console.log(data.user.username + " left game: " + data.gameId)
 
-        if (lobby.players.length === 0) {
+        if (lobby.players.length === 0 && deleteLobbyOnEmpty) {
+            console.log("removing lobby" + lobby)
             lobbyHandler.removeLobby(data.gameId)
         }
-
-        console.log("players in lobby: " + lobby.getPlayersAsUsername())
 
         io.emit("ongoingGamesStream", lobbyHandler.getGames())
     })
@@ -212,6 +232,28 @@ io.on("connection", socket => {
         callback({ status: "error" })
     })
 
-})
+    socket.on("getChatMessages", (data, cb) => {
+        // Respond with chat messages
+        cb(lobbyHandler.getLobbyByCode(data.gameId).getMessages())
+    })
 
+    socket.on("sendMessage", (data) => {
+        // Get lobby
+        const lobby = lobbyHandler.getLobbyByCode(data.gameId)
+
+        // Check if user is in lobby
+        if (!lobby.playerExists(data.authorId)) {
+
+            // Send error message?
+            return
+        }
+
+        // Add message to lobby
+        lobby.addMessage(data.author, data.content)
+
+        // Send message to all players in lobby
+        io.to(data.gameId).emit("chatMessage", data)
+    })
+
+})
 

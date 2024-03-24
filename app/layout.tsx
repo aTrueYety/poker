@@ -28,7 +28,7 @@ export default async function RootLayout({
     return (
         <LayoutWrapper session={session}>
             <html lang="en">
-                <body className={open.className + " min-w-screen min-h-screen p-2 select-none"}>
+                <body className={open.className + " w-screen h-screen p-2 select-none"}>
                     <Sidebar />
                     {children}
                 </body>
