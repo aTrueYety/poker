@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Chat from "@/components/chat";
 import Toast from "@/components/toast";
+import Lobby from "@/components/lobby";
 
 export default function Game({ params }: { params: { gameId: string } }) {
     const router = useRouter();
@@ -39,6 +40,7 @@ export default function Game({ params }: { params: { gameId: string } }) {
         //cleanup on page unload
         const cleanup = () => {
             //remove user from game
+
             socket?.emit("leaveGame", userData)
         }
 
@@ -83,6 +85,7 @@ export default function Game({ params }: { params: { gameId: string } }) {
         <div className="flex flex-col items-center justify-center mt-2 max-h-full w-full h-full">
             <div className="flex flex-row-reverse max-h-full w-full h-full">
                 <Chat gameId={params.gameId} />
+                <Lobby gameId={params.gameId} />
             </div>
         </div>
     )

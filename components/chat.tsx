@@ -3,15 +3,16 @@
 import { useEffect, useState, useRef } from "react"
 import useSocket from "@/util/socket"
 import { TextInput, Button } from "./input"
-import { Message, Messageprops } from "./message"
+import { ChatMessage } from "./chatMessage"
 import { useSession } from "next-auth/react"
 import { useAnimate } from "framer-motion"
+import { Message } from "@/types/types"
 
 export default function Chat({ gameId }: { gameId: string }) {
     const [loading, setLoading] = useState(true)
     const [input, setInput] = useState("")
     const socket = useSocket();
-    const [messages, setMessages] = useState<Messageprops[]>([])
+    const [messages, setMessages] = useState<Message[]>([])
     const chatBoxRef = useRef<HTMLInputElement>(null)
     const session = useSession()
 
@@ -25,7 +26,7 @@ export default function Chat({ gameId }: { gameId: string }) {
     }
 
     useEffect(() => {
-        socket?.emit("getChatMessages", { gameId }, (res: Messageprops[]) => {
+        socket?.emit("getChatMessages", { gameId }, (res: Message[]) => {
             setLoading(false)
             setMessages(res)
         })
@@ -36,7 +37,7 @@ export default function Chat({ gameId }: { gameId: string }) {
 
     }, [])
 
-    socket?.on("chatMessage", (message: Messageprops) => {
+    socket?.on("chatMessage", (message: Message) => {
         setMessages([...messages, message])
     })
 
@@ -75,7 +76,7 @@ export default function Chat({ gameId }: { gameId: string }) {
 }
 
 
-function Messages({ messages }: { messages?: Messageprops[] }) {
+function Messages({ messages }: { messages?: Message[] }) {
 
     const [scope, animate] = useAnimate();
     const [chatFadeIn, animateChatFadeIn] = useAnimate();
@@ -107,13 +108,13 @@ function Messages({ messages }: { messages?: Messageprops[] }) {
                     if (i === 0) {
                         return (
                             <div key={i} ref={chatFadeIn}>
-                                <Message {...message} />
+                                <ChatMessage {...message} />
                             </div>
                         )
                     }
                     return (
                         <div key={i}>
-                            <Message {...message} />
+                            <ChatMessage {...message} />
                         </div>
                     )
                 })}

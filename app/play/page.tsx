@@ -5,12 +5,15 @@ import { useEffect, useState } from "react"
 import useSocket from "@/util/socket"
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Toast from "@/components/toast";
+import { LobbyInfo } from "@/types/types";
 
 export default function Game() {
 
     const router = useRouter();
     const socket = useSocket();
     const session = useSession();
+    const [noGameToast, setNoGameToast] = useState(false)
 
     useEffect(() => {
         socket?.emit("fetchGames")
@@ -18,11 +21,28 @@ export default function Game() {
 
     const [gameId, setGameId] = useState("");
 
+    // Handles redirection to game page
+    const redirectToGame = (gameId: string) => {
+        socket?.timeout(2000).emit("gameExists", gameId, (err: any, res: any) => {
+
+            if (err) {
+                setNoGameToast(true)
+                return
+            }
+
+            if (res.status === "ok") {
+                router.push("/play/" + gameId)
+                return
+            }
+            setNoGameToast(true)
+        })
+    }
+
     return (
         <div className="flex flex-col items-center justify-center mt-10">
             <div className="flex flex-row items-center justify-center h-20 w-1/2">
-                <TextInput onChange={s => setGameId(s)} onSubmit={() => router.push("/play/" + gameId)} placeholder="Enter game id..." className=" w-10/12 text-center" textCentered={true} onEnterClear={true} />
-                <Button variant={"primary"} className="ml-2 w-2/12" onClick={() => router.push("/play/" + gameId)}>Join</Button>
+                <TextInput onChange={s => setGameId(s)} onSubmit={() => redirectToGame(gameId)} placeholder="Enter game id..." className=" w-10/12 text-center" textCentered={true} onEnterClear={true} />
+                <Button variant={"primary"} className="ml-2 w-2/12" onClick={() => redirectToGame(gameId)}>Join</Button>
             </div>
 
             <div className="mt-8 mb-8">
@@ -50,13 +70,14 @@ export default function Game() {
                     <OngoingGames />
                 </div>
             </div>
+            {noGameToast && <Toast title="Game not found" text="The game you are trying to join does not exist" variant="error" fade={1500} onClose={() => setNoGameToast(false)} />}
         </div>
     )
 }
 
 function OngoingGames() {
     const socket = useSocket();
-    const [games, setGames] = useState([])
+    const [games, setGames] = useState<LobbyInfo[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -71,6 +92,8 @@ function OngoingGames() {
     }, [])
 
     if (loading) {
+
+        // Change this to a skeleton
         return (
             <div className="flex flex-col align-middle content-center justify-center">
                 <div>
@@ -88,7 +111,7 @@ function OngoingGames() {
         games.length == 0 ?
             <div> no ongoing games </div>
             :
-            games.map((game: any, index: number) => {
+            games.map((game: LobbyInfo, index: number) => {
                 return (
                     <OngoingGameCard key={index} code={game.id} players={game.players} status={game.status} />
                 )

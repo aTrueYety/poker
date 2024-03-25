@@ -1,9 +1,6 @@
-export interface Messageprops {
-    author: string,
-    content: string
-}
+import { Message } from "@/types/types";
 
-export function Message(message: Messageprops) {
+export function ChatMessage(message: Message) {
     return (
         <div className="flex flex-row items-center">
             <h1 className=" text-neutral-300 font-semibold">{message.author}</h1>
