@@ -3,7 +3,7 @@ import { createServer } from 'node:http'
 import express from 'express'
 import ip from 'ip'
 import { LobbyHandler, Player } from './lobbyhandler.js'
-//import { PokerGame, PokerPlayer, Deck, Card } from './pokergame.js'
+import { PokerGame, PokerPlayer, Deck, Card } from './pokergame.js'
 import { v4 as uuidv4 } from 'uuid'
 
 const app = express()

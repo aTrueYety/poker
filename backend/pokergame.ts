@@ -1,39 +1,46 @@
-class Holder {
-    constructor(hand = []) {
-        this.hand = hand;
-    }
+import { Game, PokerAction, Suit, Value } from "@/types/types";
+import { Player } from "./lobbyhandler";
+
+interface Holder {
+    hand: Card[]
 }
 
-class PokerPlayer extends Holder {
-    constructor(playerID, name, bank, hand = []) {
-        super(hand);
-        this.playerID = playerID;
-        this.name = name;
+class PokerPlayer extends Player implements Holder {
+    public name: string
+    public bank: number
+    public lastAction: PokerAction
+    public allIn: boolean
+    public turnPot: number
+    public roundPot: number
+    public hand: Card[]
+
+    constructor(bank: number, hand: Card[] = [], player: Player) {
+        super(player.getId(), player.getUsername(), player.getSocket())
+        this.hand = hand;
         this.bank = bank;
         this.lastAction = null;
         this.allIn = false;
         this.turnPot = 0;
         this.roundPot = 0;
     }
-    getBestHand(board) {
 
-    }
-    toString() {
+    toString(): string {
         return this.name + ": " + this.hand.toString() + " | Bank: " + this.bank + " | Last action: " + this.lastAction;
     }
 }
 
-class PokerBoard extends Holder {
-    constructor(hand = []) {
-        super(hand);
-    }
+class PokerBoard implements Holder {
+    public hand: Card[]
     toString() {
         return "Board: " + this.hand.toString();
     }
 }
 
 class Card {
-    constructor(suit, value) {
+    public suit: Suit
+    public value: Value
+
+    constructor(suit: Suit, value: Value) {
         this.suit = suit;
         this.value = value;
     }
@@ -42,13 +49,14 @@ class Card {
     }
 }
 
-const types = ["Spades", "Hearts", "Clubs", "Diamonds"];
+
 class Deck {
+    private cards: Card[]
     constructor() {
         this.cards = [];
-        for (const type in types) {
-            for (let j = 0; j < 13; j++) {
-                this.cards.push(new Card(types[type], j + 1));
+        for (const type in Suit) {
+            for (let j: number = 0; j < 13; j++) {
+                this.cards.push(new Card(Suit[type], j + 1));
             }
         }
         this.shuffle();
@@ -56,14 +64,23 @@ class Deck {
     shuffle() {
         this.cards.sort(() => (Math.random() - 0.5));
     }
-    dealTo(object) {
-        object.hand.push(this.cards.pop());
+    dealTo(holder: Holder) {
+        holder.hand.push(this.cards.pop());
     }
 }
 
 
-class PokerGame {
-    constructor(players, board = new Board(), blinds = [10, 20], blindTurn = 0) {
+class PokerGame implements Game {
+    players: PokerPlayer[]
+    private turn: number
+    private board: PokerBoard
+    private blinds: number[]
+    private blindTurn: number
+    private deck: Deck
+    private pot: number
+    private turnPot: number
+
+    constructor(players: PokerPlayer[], board = new PokerBoard(), blinds = [10, 20], blindTurn = 0) {
         this.players = players;
         this.turn = 0;
         this.board = board;
@@ -75,14 +92,14 @@ class PokerGame {
 
         // add obvservers
     }
-    playerInput(player, action, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
+    playerInput(player: PokerPlayer, action: PokerAction, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
         const res = this.playerAction(player, action, amt);
         if (res) {
             if (this.testTurnOver()) { this.nextTurn(); }
         }
         return res;
     }
-    playerAction(player, action, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
+    playerAction(player: PokerPlayer, action: PokerAction, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
         const playerSpot = this.players.indexOf(player);
         if (playerSpot == -1) { return false; } // if player not found return false
         if (playerSpot != this.turn) { return false; } // if not players turn return false
@@ -94,7 +111,7 @@ class PokerGame {
                     if (this.players[player].turnPot > turnPot) { return false; }
                 }
                 this.bumpTurn();
-                player.lastAction = "check";
+                player.lastAction = action;
                 console.log("check validated for " + player.name);
                 return true;
             case "call":
@@ -108,15 +125,15 @@ class PokerGame {
                 if (player.bank < callAmt) { return false; } // if player does not have enough money then call is not valid
                 this.playerPut(player, callAmt);
                 this.bumpTurn();
-                player.lastAction = "call";
+                player.lastAction = action
                 console.log("call validated for " + player.name);
                 return true;
-            case "bett":
+            case "bet":
                 if (amt < Math.max(...(this.blinds))) { return false; } // if bett amount is 0 then bett is not valid   
                 var topPot = 0;
                 for (let i = 0; i < this.players.length; i++) {
                     const otherPlayer = this.players[i];
-                    if (otherPlayer.lastAction == "bett" || otherPlayer.lastAction == "raise") { return false; } // if someone has bett or raised then bett is not valid
+                    if (otherPlayer.lastAction == PokerAction["BET"] || otherPlayer.lastAction == PokerAction["RAISE"]) { return false; } // if someone has bett or raised then bett is not valid
                     topPot = Math.max(topPot, otherPlayer.turnPot);
                 }
                 var callAmt = topPot - player.turnPot; // find call amount
@@ -124,7 +141,7 @@ class PokerGame {
                 if (player.bank < totalAmt) { return false; } // if player does not have enough money then bett is not valid
                 this.playerPut(player, totalAmt);
                 this.bumpTurn();
-                player.lastAction = "bett";
+                player.lastAction = action;
                 console.log("bett validated for " + player.name);
                 return true;
             case "raise":
@@ -138,7 +155,7 @@ class PokerGame {
                 var otherBettOrRaise = false;
                 for (let i = 0; i < this.players.length; i++) {
                     const otherPlayer = this.players[i];
-                    if (otherPlayer.lastAction == "bett" || otherPlayer.lastAction == "raise") { otherBettOrRaise = true; } // if someone has bett or raised then bett is not valid
+                    if (otherPlayer.lastAction == PokerAction["BET"] || otherPlayer.lastAction == PokerAction["RAISE"]) { otherBettOrRaise = true; } // if someone has bett or raised then bett is not valid
                     topPot = Math.max(topPot, otherPlayer.turnPot);
                 }
                 if (!otherBettOrRaise) { return false; } // if no one has bett or raised then raise is not valid
@@ -147,7 +164,7 @@ class PokerGame {
                 if (player.bank < totalAmt) { return false; } // if player does not have enough money then bett is not valid
                 this.playerPut(player, totalAmt);
                 this.bumpTurn();
-                player.lastAction = "raise";
+                player.lastAction = action
                 console.log("raise validated for " + player.name);
                 return true;
             case "fold":
@@ -155,7 +172,7 @@ class PokerGame {
                 // if ether of the two last players are all in or folded then we need to continue backwards
                 var lastturnPot = this.players[(playerSpot - 1 + this.players.length) % this.players.length].turnPot; // find last player pot
                 if (lastturnPot < player.turnPot) { return false; } // if player has put more or same amount of money than the prev player then fold is not valid
-                player.lastAction = "fold";
+                player.lastAction = action
                 this.bumpTurn();
                 console.log("fold validated for " + player.name);
                 return true;
@@ -165,13 +182,13 @@ class PokerGame {
         }
     }
 
-    findPlayer(playerID) {
+    findPlayer(playerID: string) {
         for (const player in this.players) {
-            if (this.players[player].playerID == playerID) { return this.players[player]; }
+            if (this.players[player].getId() == playerID) { return this.players[player]; }
         }
         return null;
     }
-    addPlayer(player) {
+    addPlayer(player: PokerPlayer) {
         this.players.push(player);
     }
     bumpTurn(amt = 1) {  // this is not tested if a player has folded or is all in
@@ -401,7 +418,7 @@ class PokerGame {
                 const hand = allHands[i];
                 // console.log([...hand]);
                 // console.log(evaluateHand([...hand]));
-                const comparison = compareHands([...hand], [...bestHand]);
+                const comparison = this.compareHands([...hand], [...bestHand]);
                 if (comparison) { bestHand = [...hand]; }
             }
             bestHands.push(bestHand);
@@ -412,7 +429,7 @@ class PokerGame {
         for (let i = 1; i < bestHands.length; i++) {
             const candidate = candidates[i];
             const hand = bestHands[i];
-            const comparison = compareHands(hand, bestHand[0]);
+            const comparison = this.compareHands(hand, bestHand[0]);
             if (comparison === true) {
                 bestHand = [hand];
                 winners = [candidate];
@@ -424,9 +441,9 @@ class PokerGame {
         return winners;
     }
 
-    compareHands(hand1, hand2) /*Returns true if hand one is greater or false if hand two is greater. Returns 0 if they are equal*/ {
-        const hand1Value = evaluateHand(hand1);
-        const hand2Value = evaluateHand(hand2);
+    compareHands(hand1: Card[], hand2: Card[]) /*Returns true if hand one is greater or false if hand two is greater. Returns 0 if they are equal*/ {
+        const hand1Value = this.evaluateHand(hand1);
+        const hand2Value = this.evaluateHand(hand2);
         for (let i = 0; i < hand1Value.length; i++) {
             if (hand1Value[i] > hand2Value[i]) { return true; } // impliment console.log hva som gjorde at spiller vant
             if (hand1Value[i] < hand2Value[i]) { return false; }
@@ -434,7 +451,7 @@ class PokerGame {
         return 0;
     }
 
-    evaluateHand(hand) {
+    evaluateHand(hand: Card[]) {
         // this should work with kickers as tie breakers
         /* Encodes hand value as an array of numbers. Each element represents 
         a combination of cards. Element 1 is for royal flush, where 0 

@@ -50,7 +50,7 @@ class Lobby {
 
 
     /**
-     * @returns {Array} All messages in the lobby chat
+     * @returns All messages in the lobby chat
      */
 
     getMessages(): Message[] {
@@ -60,8 +60,8 @@ class Lobby {
     /**
      * Adds a message to the lobby chat.
      *
-     * @param {*} author The author of the message. This is NOT the id of the author
-     * @param {*} content The content of the message
+     * @param  author The author of the message. This is NOT the id of the author
+     * @param  content The content of the message
      */
 
     addMessage(author: string, content: string) {
@@ -82,7 +82,7 @@ class Lobby {
     /**
      * Adds a player to the lobby.
      *
-     * @param {*} player The Id of the player to add
+     * @param player The Id of the player to add
      */
     addPlayer(player: Player) {
         if (this.playerExists(player.getId())) {
@@ -96,7 +96,7 @@ class Lobby {
      * Removes a player from the lobby.
      * 
      * If the player is the owner of the lobby, ownership wil transfer to the next player.
-     * @param {*} id The id of the player to remove
+     * @param id The id of the player to remove
      */
     removePlayer(id: string) {
         this.players = this.players.filter(player => {
@@ -133,8 +133,8 @@ class Lobby {
     }
 
     /**
-     * @param {*} id  The id to check
-     * @returns  {boolean} True if the player with the given id is the owner of the lobby, false if the player is not the owner
+     * @param  id  The id to check
+     * @returns  True if the player with the given id is the owner of the lobby, false if the player is not the owner
      */
     isOwner(id: string) {
         return this.owner === id
@@ -143,8 +143,8 @@ class Lobby {
     /**
      * Checks if a player with the given id exists in the lobby.
      *
-     * @param {*} id  The id of the player to check for
-     * @returns  {boolean} True if the player exists, false if the player does not exist
+     * @param id  The id of the player to check for
+     * @returns True if the player exists, false if the player does not exist
      */
 
     playerExists(id: string) {
@@ -176,8 +176,8 @@ class LobbyHandler {
     /**
      * Creates a new lobby and gives ownership to the user with the given id.
      *
-     * @param {*} userId  The id of the user that will own the lobby
-     * @returns  {string} The code of the new lobby, or false if no code could be generated
+     * @param userId  The id of the user that will own the lobby
+     * @returns  The code of the new lobby, or false if no code could be generated
      */
     createLobby(userId: string) {
         let lobby = this.getLobbyByOwner(userId)
@@ -199,7 +199,7 @@ class LobbyHandler {
     /**
      * Removes a lobby from the lobbyHandler.
      *
-     * @param {*} code  The code of the lobby to remove
+     * @param code  The code of the lobby to remove
      */
 
     removeLobby(code: string) {
@@ -219,8 +219,8 @@ class LobbyHandler {
     /**
      * Gets a lobby by the owner of the lobby.
      *
-     * @param {*} userId  The id of the user that owns the lobby
-     * @returns  {Lobby} The lobby that the user owns, or undefined if the user does not own a lobby
+     * @param userId  The id of the user that owns the lobby
+     * @returns  The lobby that the user owns, or undefined if the user does not own a lobby
      */
     getLobbyByOwner(userId: string): Lobby | undefined {
         return this.lobbies.find(lobby => {
@@ -231,8 +231,8 @@ class LobbyHandler {
     /**
      * Gets a lobby by the code of the lobby.
      *
-     * @param {*} code  The code of the lobby
-     * @returns  {Lobby} The lobby with the given code, or undefined if the lobby does not exist
+     * @param code  The code of the lobby
+     * @returns The lobby with the given code, or undefined if the lobby does not exist
      */
     getLobbyByCode(code: string) {
         return this.lobbies.find(lobby => {
@@ -241,7 +241,7 @@ class LobbyHandler {
     }
 
     /**
-     * @returns {Array} All games in the lobbyHandler
+     * @returns All games in the lobbyHandler
      */
     getGames(): LobbyInfo[] {
         return this.lobbies.map(lobby => {
@@ -256,7 +256,7 @@ class LobbyHandler {
     /**
      * Finds a valid code for a new lobby.
      *
-     * @returns {string} A valid code for a new lobby, or false if no code could be generated
+     * @returns A valid code for a new lobby, or false if no code could be generated
      */
     findValidCode() {
         let maxIterations = 100
@@ -276,7 +276,7 @@ class LobbyHandler {
     /**
      * Generates a new lobby code, but does not check if the code is already in use.
      *
-     * @returns {string} A random lobby code
+     * @returns A random lobby code
      */
     generateCode() {
         let length = 4;
