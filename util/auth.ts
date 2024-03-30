@@ -16,6 +16,8 @@ export const authOptions = {
             async authorize(credentials, req) {
                 if (credentials?.username == "admin" && credentials?.password == "admin") {
                     return { id: "test", name: "admin" }
+                } else {
+                    return { id: "test2", name: "user2" }
                 }
 
                 return null;

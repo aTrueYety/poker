@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 import Chat from "@/components/chat";
 import Toast from "@/components/toast";
 import Lobby from "@/components/lobby";
+import Game from "@/components/game";
+import { GameEvent, GameStream } from "@/types/types";
 
-export default function Game({ params }: { params: { gameId: string } }) {
+export default function Play({ params }: { params: { gameId: string } }) {
     const router = useRouter();
     const socket = useSocket();
     const session = useSession();
@@ -15,6 +17,8 @@ export default function Game({ params }: { params: { gameId: string } }) {
     const [loading, setLoading] = useState(true);
     const [gameExists, setGameExists] = useState(false);
     const [gameInProgress, setGameInProgress] = useState(false);
+
+    const [spectating, setSpectating] = useState<boolean>(false);
 
     const userData = { user: { id: session.data?.user.id, username: session.data?.user.name }, gameId: params.gameId }
 
@@ -31,10 +35,26 @@ export default function Game({ params }: { params: { gameId: string } }) {
 
             //if the game is found
             if (res.status === "ok") {
+                setSpectating(res.spectating)
                 setGameExists(true)
+                setGameInProgress(res.inProgress)
                 setLoading(false)
                 return
             }
+        })
+
+        socket?.on("gameStream", (data: GameStream) => {
+            if (data.event === GameEvent.START) {
+                setGameInProgress(true)
+                return
+            }
+
+            if (data.event === GameEvent.END) {
+                setGameInProgress(false)
+                return
+            }
+
+            console.log(data)
         })
 
         //cleanup on page unload
@@ -59,7 +79,7 @@ export default function Game({ params }: { params: { gameId: string } }) {
     // If user is not logged in, redirect to play page
     if (!session.data?.user) {
         router.push("/play")
-        return null
+        return <></>
     }
 
     // If the page is loading. Change this to a skeleton?
@@ -85,7 +105,8 @@ export default function Game({ params }: { params: { gameId: string } }) {
         <div className="flex flex-col items-center justify-center mt-2 max-h-full w-full h-full">
             <div className="flex flex-row-reverse max-h-full w-full h-full">
                 <Chat gameId={params.gameId} />
-                <Lobby gameId={params.gameId} />
+                {!gameInProgress && <Lobby gameId={params.gameId} />}
+                {gameInProgress && <Game gameId={params.gameId} spectating={spectating} />}
             </div>
         </div>
     )

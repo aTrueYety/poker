@@ -1,4 +1,4 @@
-import { Game, PokerAction, Suit, Value } from "@/types/types";
+import { Game, GameAction, Suit, Value } from "@/types/types";
 import { Player } from "./lobbyhandler";
 
 interface Holder {
@@ -8,20 +8,22 @@ interface Holder {
 class PokerPlayer extends Player implements Holder {
     public name: string
     public bank: number
-    public lastAction: PokerAction
+    public lastAction: string
     public allIn: boolean
     public turnPot: number
     public roundPot: number
     public hand: Card[]
+    public isSpectating: boolean
 
-    constructor(bank: number, hand: Card[] = [], player: Player) {
+    constructor(player: Player, hand: Card[] = [], bank: number = 2000, isSpectating = false) {
         super(player.getId(), player.getUsername(), player.getSocket())
         this.hand = hand;
-        this.bank = bank;
+        this.bank = bank
         this.lastAction = null;
         this.allIn = false;
         this.turnPot = 0;
         this.roundPot = 0;
+        this.isSpectating = isSpectating
     }
 
     toString(): string {
@@ -71,6 +73,7 @@ class Deck {
 
 
 class PokerGame implements Game {
+    infoText: string;
     players: PokerPlayer[]
     private turn: number
     private board: PokerBoard
@@ -80,8 +83,8 @@ class PokerGame implements Game {
     private pot: number
     private turnPot: number
 
-    constructor(players: PokerPlayer[], board = new PokerBoard(), blinds = [10, 20], blindTurn = 0) {
-        this.players = players;
+    constructor(_players: Player[], board = new PokerBoard(), blinds = [10, 20], blindTurn = 0) {
+        this.players = _players.map((p) => { return new PokerPlayer(p) })
         this.turn = 0;
         this.board = board;
         this.blinds = blinds;
@@ -89,17 +92,36 @@ class PokerGame implements Game {
         this.deck = new Deck();
         this.pot;
         this.turnPot;
+        this.infoText = "Poker - texas holdem"
 
         // add obvservers
     }
-    playerInput(player: PokerPlayer, action: PokerAction, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
-        const res = this.playerAction(player, action, amt);
+
+    /**
+     * Performs an input from a player
+     *
+     * @param player The player that wants to perform the action
+     * @param action The action to be performed
+     * @param amt    The amount being betted
+     * @returns      True if the action is performed, false otherwise
+     */
+    public playerInput(playerid: string, action: GameAction) /*Returns true if sucsess and fasle otherwise*/ {
+        console.log("playerInput: " + playerid + " " + action.action + " " + action.amount);
+
+        const res = this.playerAction(this.getPokerPlayerById(playerid), action.action, action.amount ? action.amount : 0);
+        console.log("playerInput: " + res);
         if (res) {
             if (this.testTurnOver()) { this.nextTurn(); }
         }
         return res;
     }
-    playerAction(player: PokerPlayer, action: PokerAction, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
+
+    private getPokerPlayerById(playerid: string) {
+        return this.players.find(p => (p.getId() === playerid))
+    }
+
+    private playerAction(player: PokerPlayer, action: string, amt = 0) /*Returns true if sucsess and fasle otherwise*/ {
+
         const playerSpot = this.players.indexOf(player);
         if (playerSpot == -1) { return false; } // if player not found return false
         if (playerSpot != this.turn) { return false; } // if not players turn return false
@@ -133,7 +155,7 @@ class PokerGame implements Game {
                 var topPot = 0;
                 for (let i = 0; i < this.players.length; i++) {
                     const otherPlayer = this.players[i];
-                    if (otherPlayer.lastAction == PokerAction["BET"] || otherPlayer.lastAction == PokerAction["RAISE"]) { return false; } // if someone has bett or raised then bett is not valid
+                    if (otherPlayer.lastAction == "bet" || otherPlayer.lastAction == "raise") { return false; } // if someone has bett or raised then bett is not valid
                     topPot = Math.max(topPot, otherPlayer.turnPot);
                 }
                 var callAmt = topPot - player.turnPot; // find call amount
@@ -155,7 +177,7 @@ class PokerGame implements Game {
                 var otherBettOrRaise = false;
                 for (let i = 0; i < this.players.length; i++) {
                     const otherPlayer = this.players[i];
-                    if (otherPlayer.lastAction == PokerAction["BET"] || otherPlayer.lastAction == PokerAction["RAISE"]) { otherBettOrRaise = true; } // if someone has bett or raised then bett is not valid
+                    if (otherPlayer.lastAction == "bet" || otherPlayer.lastAction == "raise") { otherBettOrRaise = true; } // if someone has bett or raised then bett is not valid
                     topPot = Math.max(topPot, otherPlayer.turnPot);
                 }
                 if (!otherBettOrRaise) { return false; } // if no one has bett or raised then raise is not valid
@@ -170,9 +192,11 @@ class PokerGame implements Game {
             case "fold":
                 if (playerSpot == -1) { console.log("vry bad!"); return false; } // if player index not found return false
                 // if ether of the two last players are all in or folded then we need to continue backwards
-                var lastturnPot = this.players[(playerSpot - 1 + this.players.length) % this.players.length].turnPot; // find last player pot
+                let lastturnPot = this.players[(playerSpot - 1 + this.players.length) % this.players.length].turnPot; // find last player pot
                 if (lastturnPot < player.turnPot) { return false; } // if player has put more or same amount of money than the prev player then fold is not valid
                 player.lastAction = action
+
+                if (this.testTurnOver()) { this.nextTurn() }
                 this.bumpTurn();
                 console.log("fold validated for " + player.name);
                 return true;
@@ -188,9 +212,29 @@ class PokerGame implements Game {
         }
         return null;
     }
-    addPlayer(player: PokerPlayer) {
-        this.players.push(player);
+
+    addPlayer(player: Player): void {
+        this.players.push(new PokerPlayer(player));
     }
+
+    setSpectator(playerId: string, value: boolean): void {
+        const player = this.players.find(p => p.getId() === playerId);
+        if (player) {
+            player.isSpectating = value;
+        }
+    }
+
+    removePlayer(playerId: string): void {
+        console.log(playerId + " is leaving")
+
+        this.players = this.players.filter(p => {
+            return p.getId() !== playerId
+        })
+        console.log(this.players)
+    }
+
+    // This may or may not create an infinite loop :=)
+    // If a player is alone and has folded then the game will never end
     bumpTurn(amt = 1) {  // this is not tested if a player has folded or is all in
         var temp = 0;
         this.turn += amt - 1;
@@ -202,6 +246,7 @@ class PokerGame implements Game {
         if (temp != 1) { console.log("bumpTurn: skipped player"); return false; }
         //console.log("New turn:" + this.turn);
     }
+
     bumpBlindTurn(amt = 1) {
         this.blindTurn += amt;
         this.blindTurn = (this.blindTurn + this.players.length) % this.players.length;
@@ -305,7 +350,12 @@ class PokerGame implements Game {
             this.bumpTurn();
             console.log("Blind: " + player.name + " " + amt);
         }
+
+        this.players.forEach(player => {
+            player.getSocket().emit("gameStream", { event: "startRound", data: { players: this.players.map(player => { return player.getUsername() }), board: this.board.hand, blinds: this.blinds } })
+        })
     }
+
     endRound() { // this assumes all player in game not folded have the sama amount of money in the pot or are all in
         console.log("endRound");
         // finish roundpot
@@ -514,6 +564,21 @@ class PokerGame implements Game {
         for (let i = 0; i < hand.length; i++) { res[10 + i] = hand[i].value; }
 
         return res;
+    }
+
+    public getState(userId: string) {
+        return {
+            cards: this.players.find(p => p.getId() === userId)?.hand,
+            players: this.players.map(player => { return player.getUsername() }),
+            board: this.board.hand,
+            blinds: this.blinds,
+            pot: this.pot,
+            turn: this.turn,
+            turnPot: this.turnPot,
+            spectating: this.players.find(p => p.getId() === userId)?.isSpectating,
+            allSpectators: this.players.filter(p => p.isSpectating).map(p => p.getUsername())
+
+        }
     }
 
     toString() {

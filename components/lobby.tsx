@@ -1,9 +1,13 @@
 "use client"
 import { useSession } from "next-auth/react";
-import { Button } from "./input";
+import { Button, Dropdown, DropdownItem } from "./input";
 import useSocket from "@/util/socket";
 import { useEffect, useState } from "react";
 import Toast from "./toast";
+import { Switch } from "./ui/switch";
+import { Label } from "./ui/label";
+import { GameSettings, LobbyError } from "@/types/types";
+import { Games } from "@/backend/lobbyhandler";
 
 export default function Lobby({ gameId }: { gameId: string }) {
     const session = useSession();
@@ -65,6 +69,32 @@ export default function Lobby({ gameId }: { gameId: string }) {
 
     }, [owner])
 
+    const startGame = () => {
+        // Set the game
+        socket?.emit("setGame", { gameId: gameId, userId: session.data?.user.id, gameType: "POKER" }, (res: any) => {
+            if (res.status === "error") {
+                setErrorToastOpen(true)
+                setErrorToastTitle("Error")
+                setErrorToastMessage("An error occurred while setting the game \n Error: " + LobbyError[res.errorMessage])
+                return
+            }
+        })
+
+
+        socket?.emit("startGame", { gameId: gameId, userId: session.data?.user.id }, (res: any) => {
+            if (res.status === "error") {
+                setErrorToastOpen(true)
+                setErrorToastTitle("Error")
+                setErrorToastMessage("An error occurred while starting the game \n Error: " + LobbyError[res.errorMessage])
+                return
+            }
+
+            setSuccessToastOpen(true)
+            setSuccessToastTitle("Game started")
+            setSuccessToastMessage("The game has been started")
+        })
+    }
+
 
     return (
         <div className="flex w-full flex-col items-center mt-20">
@@ -72,15 +102,93 @@ export default function Lobby({ gameId }: { gameId: string }) {
                 Game Code : {gameId}
             </div>
             <div className="mt-4">
-                <Button variant="primary">Start Game</Button>
+                <Button onClick={startGame} variant="primary">Start Game</Button>
             </div>
 
             <DisplayPlayers players={players} />
+
+            <LobbySettings gameId={gameId} owner={owner} />
 
             {errorToastOpen && <Toast variant="error" title={errorToastTitle} text={errorToastMessage} fade={4000} onClose={() => setErrorToastOpen(false)} />}
             {successToastOpen && <Toast variant="success" title={successToastTitle} text={successToastMessage} fade={2000} onClose={() => setSuccessToastOpen(false)} />}
         </div>
     )
+}
+
+function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
+    const socket = useSocket();
+    const [loading, setLoading] = useState(true);
+    const [settings, setSettings] = useState<GameSettings>();
+    const session = useSession();
+
+    useEffect(() => {
+        socket?.emit("getGameSettings", { gameId }, (res: any) => {
+            if (res.status === "error") {
+                return
+            }
+
+            setSettings(res.settings)
+            setLoading(false)
+        })
+    }, [])
+
+    useEffect(() => {
+        if (loading) { return }
+
+        socket?.emit("updateGameSettings", { gameId: gameId, userId: session.data?.user.id, settings: settings }, (res: any) => {
+            if (res.status === "error") {
+                console.log(res)
+                // show error toast
+                return
+            }
+
+            if (res.status === "ok") {
+                // show success toast
+            }
+        })
+
+    }, [settings])
+
+
+
+    if (loading) {
+        return (
+            <>
+                loading
+            </>
+        )
+    }
+
+    const setRated = (value: boolean) => {
+        if (!settings) return
+        setSettings({ ...settings, rated: value })
+    }
+
+    return (
+        <div className="flex flex-col items-center">
+            <div className="text-xl font-bold mt-8">
+                Settings
+            </div>
+            <div className="mt-4 ">
+                <div className="flex flex-row justify-between items-center">
+                    <Label className="pr-2 w-full cursor-pointer" htmlFor="rated">Rated</Label>
+                    <Switch disabled={!owner} onCheckedChange={(b) => { setRated(b) }} defaultChecked={settings?.rated} id={"rated"} />
+                </div>
+
+                <div className="flex space-x-6 flex-row justify-between items-center mt-2">
+                    <div>
+                        Time control
+                    </div>
+                    <Dropdown open={-1} >
+                        <DropdownItem>No time control</DropdownItem>
+                        <DropdownItem>Blitz</DropdownItem>
+                        <DropdownItem>Custom</DropdownItem>
+                    </Dropdown>
+                </div>
+            </div>
+        </div>
+    )
+
 }
 
 interface Player {

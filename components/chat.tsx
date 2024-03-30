@@ -25,6 +25,10 @@ export default function Chat({ gameId }: { gameId: string }) {
         setInput("")
     }
 
+    socket?.on("chatMessage", (message: Message) => {
+        setMessages([...messages, message])
+    })
+
     useEffect(() => {
         socket?.emit("getChatMessages", { gameId }, (res: Message[]) => {
             setLoading(false)
@@ -37,23 +41,19 @@ export default function Chat({ gameId }: { gameId: string }) {
 
     }, [])
 
-    socket?.on("chatMessage", (message: Message) => {
-        setMessages([...messages, message])
-    })
-
     //cleanup on page unload
     useEffect(() => {
         return () => {
 
             // Remove all socket listeners
-            socket?.off("newMessageAt" + gameId)
+            socket?.off("chatMessage")
             socket?.off("gamestreamAt" + gameId)
         }
 
     }, [])
 
     return (
-        <div className="border border-neutral-500 rounded-xl p-2 w-1/4 max-w-1/4 max-h-full mr-4 ml-4 mb-6 mt-4 flex flex-col-reverse">
+        <div className="border border-neutral-500 rounded-xl p-2 w-4/12 max-h-full mr-4 ml-4 mb-6 mt-4 flex flex-col-reverse">
             <div className="flex flex-row h-14">
                 <TextInput ref={chatBoxRef} placeholder="Enter message..." className="w-full min-h-full"
                     onEnterClear={true}
@@ -63,7 +63,7 @@ export default function Chat({ gameId }: { gameId: string }) {
                     value={input}
 
                 />
-                <Button variant="primary" className="w-1/4 h-full ml-2"
+                <Button variant="primary" className="w-1/4 h-full ml-2 lg:block hidden min-w-fit"
                     onClick={() => { sendMessage(input) }}
 
                 >

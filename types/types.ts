@@ -1,4 +1,6 @@
-import { Player } from "@/backend/lobbyhandler";
+import { PokerGame } from "@/backend/pokergame";
+import { Socket } from "socket.io";
+import { DefaultEventsMap } from "socket.io/dist/typed-events";
 
 /**
  * A message to be sent in the chat
@@ -14,7 +16,9 @@ export type Message = {
 export type LobbyInfo = {
     id: string;
     players: string[];
-    status: string;
+    status: LobbyStatus;
+    rated: boolean;
+    owner: string; //change this to a uuid
 };
 
 /**
@@ -54,23 +58,101 @@ export type Card = {
     suit: Suit;
 }
 
-/**
- * Action a player can take in poker
- */
-export enum PokerAction {
-    CHECK = "check",
-    CALL = "call",
-    BET = "bet",
-    RAISE = "raise",
-    FOLD = "fold"
+export type GameAction = {
+    action: string;
+    amount?: number;
 }
+
 
 /**
  * Generic interface for a game
  */
 export interface Game {
     players: Player[];
+    infoText: string;
     startRound(): void;
+    addPlayer(player: Player): void;
+    removePlayer(playerId: string): void;
+    playerInput(playerid: string, action: GameAction): boolean
+    getState(userId: string): any;
+    setSpectator(playerId: string, value: boolean): void;
+}
+
+/**
+ * Different statuses a lobby can have
+ */
+export enum LobbyStatus {
+    WAITING,
+    IN_PROGRESS,
+    FINISHED
+}
+
+export type TimeControl = {
+    time: number;
+    timeIncrement: number;
+}
+
+export const DefaultTimeControls = {
+    BLITZ: { time: 300, timeIncrement: 5 } as TimeControl,
+    RAPID: { time: 600, timeIncrement: 10 } as TimeControl,
+    BULLET: { time: 120, timeIncrement: 3 } as TimeControl
+} as const;
+
+export interface GameSettings {
+    rated: boolean;
+    timeControl: TimeControl;
+}
+
+/**
+ * A player that with an access token, socket and username
+ */
+export class Player {
+    private id: string
+    private username: string
+    private socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>
+
+    constructor(id: string, username: string, socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
+        this.id = id
+        this.username = username
+        this.socket = socket
+    }
+
+    public getSocket(): Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any> {
+        return this.socket
+    }
+
+    public getId(): string {
+        return this.id
+    }
+
+    public getUsername(): string {
+        return this.username
+    }
+}
+
+/**
+ * Lobby errors
+ */
+export enum LobbyError {
+    GAME_NOT_FOUND,
+    GAME_FULL,
+    GAME_IN_PROGRESS,
+    GAME_NOT_IN_PROGRESS,
+    GAME_ALREADY_JOINED,
+    GAME_NOT_JOINED,
+    NO_GAME_SET
+}
+
+export enum GameEvent {
+    ACTION,
+    START,
+    END
+}
+
+export interface GameStream {
+    event: GameEvent;
+    player: string;
+    message: string;
 }
 
 

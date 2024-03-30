@@ -6,9 +6,10 @@ import useSocket from "@/util/socket"
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Toast from "@/components/toast";
-import { LobbyInfo } from "@/types/types";
+import { LobbyInfo, LobbyStatus } from "@/types/types";
+import Badge, { BadgeColor } from "@/components/badge";
 
-export default function Game() {
+export default function Play() {
 
     const router = useRouter();
     const socket = useSocket();
@@ -41,7 +42,7 @@ export default function Game() {
     return (
         <div className="flex flex-col items-center justify-center mt-10">
             <div className="flex flex-row items-center justify-center h-20 w-1/2">
-                <TextInput onChange={s => setGameId(s)} onSubmit={() => redirectToGame(gameId)} placeholder="Enter game id..." className=" w-10/12 text-center" textCentered={true} onEnterClear={true} />
+                <TextInput onEnterBlur={true} onChange={s => setGameId(s)} onSubmit={() => redirectToGame(gameId)} placeholder="Enter game id..." className=" w-10/12 text-center" textCentered={true} onEnterClear={true} />
                 <Button variant={"primary"} className="ml-2 w-2/12" onClick={() => redirectToGame(gameId)}>Join</Button>
             </div>
 
@@ -113,34 +114,60 @@ function OngoingGames() {
             :
             games.map((game: LobbyInfo, index: number) => {
                 return (
-                    <OngoingGameCard key={index} code={game.id} players={game.players} status={game.status} />
+                    <OngoingGameCard key={index} info={game} />
                 )
             }
             )
     )
 }
 
-interface OngoingGameCardProps {
-    code?: string,
-    players?: string[],
-    status?: string
-}
 
-function OngoingGameCard(props: OngoingGameCardProps) {
+
+function OngoingGameCard({ info }: { info: LobbyInfo }) {
+    const session = useSession();
+    const owned = session.data?.user.name === info.owner
+    const socket = useSocket();
+    const router = useRouter();
+
+    // Handles redirection to game page
+    const redirectToGame = (gameId: string) => {
+        socket?.timeout(2000).emit("gameExists", gameId, (err: any, res: any) => {
+
+            if (err) {
+                return
+            }
+
+            if (res.status === "ok") {
+                router.push("/play/" + gameId)
+                return
+            }
+        })
+    }
+
     return (
-        <div className="flex flex-col w-56 border p-2 rounded-lg">
-            <div>
-                code : {props.code}
+        <div className="w-96 relative border p-2 rounded-lg">
+            <div className="text-lg font-semibold mb-4">
+                {info.id}
+            </div>
+            {info.players.length > 0 && <div className="flex mt-6s flex-col">
+                <div>
+                    players : {info.players}
+                </div>
+            </div>}
+
+            <div className="flex w-full justify-center">
+                <Button variant="primary" className="mt-2 mb-2" onClick={() => redirectToGame(info.id)}>Join</Button>
             </div>
 
-            <div>
-                players : {props.players}
+            <div className="absolute top-2 right-2 z-20">
+                <div className="flex flex-row space-x-1">
+                    {owned && <Badge color={BadgeColor.Blue} name={"Owner"} hoverInfo="You are the owner of this lobby" />}
+                    {!info.rated && <Badge color={BadgeColor.Green} name={"Unrated"} hoverInfo="This lobby is unrated" />}
+                    {info.status === LobbyStatus.IN_PROGRESS && <Badge color={BadgeColor.Red} name={"In Game"} hoverInfo="This lobby is currently in game" />}
+                    {info.status === LobbyStatus.WAITING && <Badge color={BadgeColor.Green} name={"Waiting"} hoverInfo="This lobby is waiting for players" />}
+                    {info.status === LobbyStatus.FINISHED && <Badge color={BadgeColor.Yellow} name={"Finishing"} hoverInfo="The game in this lobby is just finishing" />}
+                </div>
             </div>
-
-            <div>
-                status : {props.status}
-            </div>
-
         </div>
     )
 }

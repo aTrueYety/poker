@@ -1,52 +1,91 @@
-import { LobbyInfo, Message } from "@/types/types"
-import { Socket } from "socket.io"
-import { DefaultEventsMap } from "socket.io/dist/typed-events"
+import { DefaultTimeControls, Game, GameEvent, GameSettings, LobbyError, LobbyInfo, LobbyStatus, Message, Player, TimeControl } from "@/types/types"
+import { PokerGame } from "./pokergame";
 
-class Player {
-    private id: string
-    private username: string
-    private socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>
-
-    constructor(id: string, username: string, socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
-        this.id = id
-        this.username = username
-        this.socket = socket
-        console.log("player created with id: " + id + " and username: " + username)
-    }
-
-    public getSocket(): Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any> {
-        return this.socket
-    }
-
-    public getId(): string {
-        return this.id
-    }
-
-    public getUsername(): string {
-        return this.username
-    }
-}
+export const Games = {
+    POKER: PokerGame,
+    // when more games are added, add them here
+} as const;
 
 class Lobby {
     private id: string
     private owner: string
-    public status: string // change this into an enum type
+    private ownerUsername: string //TODO: Change this to a uuid instead
+    public status: LobbyStatus
     private players: Player[]
     private messages: Message[]
-    private game: any
+    private game: Game
+    public rated: boolean = false
+    public timeControl: TimeControl = DefaultTimeControls.RAPID
 
 
-    constructor(id: string, owner: string) {
+    constructor(id: string, owner: string, ownerUsername: string) {
         this.id = id
         this.owner = owner
-        this.status = "waiting"
+        this.status = LobbyStatus.WAITING
         this.players = []
         this.messages = []
         this.game = null;
+        this.ownerUsername = ownerUsername
 
         console.log("lobby created by " + owner + " id: " + id)
     }
 
+    public getSettings(): GameSettings {
+        return {
+            rated: this.rated,
+            timeControl: this.timeControl
+        }
+    }
+
+    public setSettings(settings: GameSettings) {
+        this.rated = settings.rated
+        this.timeControl = settings.timeControl
+    }
+
+    public getGame(): Game {
+        return this.game
+    }
+
+    public setGame(gametype: keyof typeof Games): LobbyError | null {
+
+        if (gametype === undefined) {
+            return LobbyError.NO_GAME_SET
+        }
+
+        if (this.game instanceof Games[gametype]) {
+            // This set game to the same game
+            return null
+        }
+
+        if (this.status !== LobbyStatus.WAITING) {
+            return LobbyError.GAME_IN_PROGRESS
+        }
+
+        this.game = new Games[gametype]([...this.players])
+        console.log(this.game.players)
+    }
+
+    public startGame(): LobbyError | null {
+        if (!this.game) {
+            return LobbyError.NO_GAME_SET
+        }
+
+        if (this.status !== LobbyStatus.WAITING) {
+            return LobbyError.GAME_IN_PROGRESS
+        }
+
+        // Change status to in progress
+        this.status = LobbyStatus.IN_PROGRESS
+
+        // Send start message to clients
+        this.players.forEach(player => {
+            player.getSocket().emit("gameStream", { event: GameEvent.START })
+        })
+
+
+
+        this.game.startRound()
+    }
 
 
     /**
@@ -85,13 +124,27 @@ class Lobby {
      * @param player The Id of the player to add
      */
     addPlayer(player: Player) {
+        // Check if the player already exists in the lobby
         if (this.playerExists(player.getId())) {
             return
         }
 
         player.getSocket().join(this.id)
         this.players.push(player)
+        this.game?.addPlayer(player)
+
+
+
+        // Check if a game is in progress
+        if (this.status === LobbyStatus.IN_PROGRESS) {
+            // Send start message to the player
+            player.getSocket().emit("gameStream", { event: GameEvent.START })
+
+            // Set the player as a spectator
+            this.getGame().setSpectator(player.getId(), true)
+        }
     }
+
     /**
      * Removes a player from the lobby.
      * 
@@ -100,10 +153,13 @@ class Lobby {
      */
     removePlayer(id: string) {
         this.players = this.players.filter(player => {
-            if (player.getId() !== id) {
+            if (player.getId() === id) {
 
                 // Leave the socket room
                 player.getSocket().leave(this.id)
+
+                // Leave the game
+                this.game?.removePlayer(player.getId())
 
                 // Check if the player is the owner of the lobby
                 if (player.getId() === this.owner) {
@@ -112,8 +168,10 @@ class Lobby {
                     }
                 }
 
-                return true
+                return false
             }
+
+            return true
         })
     }
 
@@ -165,6 +223,11 @@ class Lobby {
         return this.owner
     }
 
+    getOwnerUsername(): string {
+        return this.ownerUsername
+
+    }
+
 }
 
 class LobbyHandler {
@@ -179,7 +242,7 @@ class LobbyHandler {
      * @param userId  The id of the user that will own the lobby
      * @returns  The code of the new lobby, or false if no code could be generated
      */
-    createLobby(userId: string) {
+    createLobby(userId: string, username: string) {
         let lobby = this.getLobbyByOwner(userId)
         if (lobby) {
             return lobby.getId()
@@ -191,7 +254,7 @@ class LobbyHandler {
             return false
         }
 
-        this.lobbies.push(new Lobby(code, userId))
+        this.lobbies.push(new Lobby(code, userId, username))
 
         return code
     }
@@ -248,7 +311,9 @@ class LobbyHandler {
             return {
                 id: lobby.getId(),
                 players: lobby.getPlayersAsUsername(),
-                status: lobby.status
+                status: lobby.status,
+                owner: lobby.getOwnerUsername(),
+                rated: lobby.rated
             }
         });
     }

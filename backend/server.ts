@@ -5,6 +5,7 @@ import ip from 'ip'
 import { LobbyHandler, Player } from './lobbyhandler.js'
 import { PokerGame, PokerPlayer, Deck, Card } from './pokergame.js'
 import { v4 as uuidv4 } from 'uuid'
+import { LobbyError, LobbyStatus } from '@/types/types.js'
 
 const app = express()
 const port = 4000
@@ -48,7 +49,7 @@ io.on("connection", socket => {
         }
 
         lobby.addPlayer(new Player(data.user.id, data.user.username, socket))
-        callback({ status: "ok" })
+        callback({ status: "ok", inProgress: lobby.status === LobbyStatus.IN_PROGRESS })
 
         io.emit("ongoingGamesStream", lobbyHandler.getGames())
     })
@@ -70,8 +71,8 @@ io.on("connection", socket => {
         io.emit("ongoingGamesStream", lobbyHandler.getGames())
     })
 
-    socket.on("createGame", (user, callback) => {
-        let code = lobbyHandler.createLobby(user.id)
+    socket.on("createGame", (data, callback) => {
+        let code = lobbyHandler.createLobby(data.user.id, data.user.name)
         console.log("lobby created with code: " + code)
 
         if (code) {
@@ -128,7 +129,7 @@ io.on("connection", socket => {
             return
         }
 
-        if (lobby.isOwner(data.id)) {
+        if (lobby.isOwner(data.userId)) {
             cb({ status: "ok", owner: true })
             return
         }
@@ -150,20 +151,111 @@ io.on("connection", socket => {
         const lobby = lobbyHandler.getLobbyByCode(data.gameId)
 
         if (!lobby) {
-            cb({ status: "error" })
+            cb({ status: "error", errorMessage: LobbyError.GAME_NOT_FOUND })
             return
         }
+
+        if (lobby.getOwner() !== data.userId) {
+            cb({ status: "error", errorMessage: "denied" })
+            return
+        }
+
+        let err = lobby.startGame();
+
+        if (err) {
+            cb({ status: "error", errorMessage: err })
+            return
+        }
+
+        cb({ status: "ok" })
     })
 
     socket.on("performGameAction", (data, cb) => {
-        const lobby = lobbyHandler.getLobbyByCode(data.gameId)
+        const game = lobbyHandler.getLobbyByCode(data.gameId)?.getGame()
 
-        if (!lobby) {
-            cb({ status: "error" })
+        if (!game) {
+            cb({ status: "error", errorMessage: LobbyError.GAME_NOT_FOUND })
             return
         }
 
+        if (!game.playerInput(data.userId, data.action)) {
+            cb({ status: "error", errorMessage: "Invalid action" })
+        }
+        cb({ status: "ok" })
+    })
 
+    socket.on("getGameSettings", (data, cb) => {
+        const lobby = lobbyHandler.getLobbyByCode(data.gameId)
+
+        if (!lobby) {
+            cb({ status: "error", errorMessage: LobbyError.GAME_NOT_FOUND })
+            return
+        }
+
+        cb({ status: "ok", settings: lobby.getSettings() })
+    })
+
+    socket.on("updateGameSettings", (data, cb) => {
+        const lobby = lobbyHandler.getLobbyByCode(data.gameId)
+
+        if (!lobby) {
+            cb({ status: "error", errorMessage: LobbyError.GAME_NOT_FOUND })
+            return
+        }
+
+        if (lobby.getOwner() !== data.userId) {
+            cb({ status: "error", errorMessage: "denied" })
+            return
+        }
+
+        if (!data.settings || !data.settings.timeControl || data.settings.rated === undefined) {
+            cb({ status: "error", errorMessage: "invalid settings" })
+            return
+        }
+
+        lobby.setSettings(data.settings)
+        cb({ status: "ok" })
+        io.emit("ongoingGamesStream", lobbyHandler.getGames())
+    })
+
+    socket.on("setGame", (data, cb) => {
+        const lobby = lobbyHandler.getLobbyByCode(data.gameId)
+
+        if (!lobby) {
+            cb({ status: "error", errorMessage: LobbyError.GAME_NOT_FOUND })
+            return
+        }
+
+        if (lobby.getOwner() !== data.userId) {
+            cb({ status: "error", errorMessage: "Denied" })
+            return
+        }
+
+        let err = lobby.setGame(data.gameType)
+
+        if (err) {
+            cb({ status: "error", errorMessage: err })
+            return
+        }
+
+        cb({ status: "ok" })
+        io.emit("ongoingGamesStream", lobbyHandler.getGames())
+    })
+
+    socket.on("getGameState", (data, cb) => {
+        const lobby = lobbyHandler.getLobbyByCode(data.gameId)
+
+        if (!lobby) {
+            cb({ status: "error", errorMessage: LobbyError.GAME_NOT_FOUND })
+            return
+        }
+
+        if (!lobby.getGame()) {
+            cb({ status: "error", errorMessage: "No game" })
+            return
+        }
+        console.log(data.userId)
+        cb({ status: "ok", gameState: lobby.getGame().getState(data.userId) })
     })
 
 })
