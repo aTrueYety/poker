@@ -7,6 +7,7 @@ import { Card } from "@/backend/pokergame"
 import { GameAction, GameStream, Suit } from "@/types/types"
 import { useEffect, useState } from "react"
 import { Button } from "./input"
+import { useToast } from "@/util/toastProvider"
 
 export default function Game({ gameId, spectating }: { gameId: string, spectating: boolean }) {
     const session = useSession()
@@ -18,10 +19,16 @@ export default function Game({ gameId, spectating }: { gameId: string, spectatin
         console.log(data)
     })
 
+    const toast = useToast();
+
     useEffect(() => {
         socket?.emit("getGameState", { gameId: gameId, userId: session.data?.user.id }, (res: any) => {
             console.log(res)
             setCards(res.gameState.cards)
+
+            if (res.gameState.spectating) {
+                toast.enqueue({ title: "Spectating", text: "This game is in progress. You are now spectating", variant: "info", fade: 2000 })
+            }
         })
     }, [])
 

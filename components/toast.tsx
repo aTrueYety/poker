@@ -30,7 +30,7 @@ export default function Toast({ title, text, onClose, variant, fade }: { title?:
         );
     };
 
-    const variants: { [key: string]: string } = { success: "bg-green-400 border-green-400", error: "bg-red-500 border-red-500" };
+    const variants: { [key: string]: string } = { success: "bg-green-400 border-green-400", error: "bg-red-500 border-red-500", info: "bg-blue-400 border-blue-400" };
 
     const bg = variant ? variants[variant] : "bg-white";
     const secondaryColor = variants[variant ? variant : ""] ? "text-gray-900" : "text-gray-500";

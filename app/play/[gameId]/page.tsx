@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Chat from "@/components/chat";
-import Toast from "@/components/toast";
 import Lobby from "@/components/lobby";
 import Game from "@/components/game";
 import { GameEvent, GameStream } from "@/types/types";
+import { useToast } from "@/util/toastProvider";
 
 export default function Play({ params }: { params: { gameId: string } }) {
     const router = useRouter();
@@ -15,12 +15,13 @@ export default function Play({ params }: { params: { gameId: string } }) {
     const session = useSession();
 
     const [loading, setLoading] = useState(true);
-    const [gameExists, setGameExists] = useState(false);
+    const [gameExists, setGameExists] = useState(true);
     const [gameInProgress, setGameInProgress] = useState(false);
 
     const [spectating, setSpectating] = useState<boolean>(false);
 
     const userData = { user: { id: session.data?.user.id, username: session.data?.user.name }, gameId: params.gameId }
+    const toast = useToast()
 
     useEffect(() => {
 
@@ -76,6 +77,12 @@ export default function Play({ params }: { params: { gameId: string } }) {
 
     }, [])
 
+    useEffect(() => {
+        if (!gameExists) {
+            toast.enqueue({ title: "Game not found", text: "The game you are trying to join does not exist. Redirecting back to /play", variant: "error", fade: 3000, onClose: () => router.push("/play") })
+        }
+    }, [gameExists])
+
     // If user is not logged in, redirect to play page
     if (!session.data?.user) {
         router.push("/play")
@@ -91,12 +98,11 @@ export default function Play({ params }: { params: { gameId: string } }) {
         )
     }
 
-    // If the game does not exist. Redirect to play page and show toast?
+    // If the game does not exist.
     if (!gameExists) {
         return (
             <div className="flex items-center justify-center">
                 <h1>Game not found</h1>
-                <Toast title="Game not found" text="The game you are trying to join does not exist. Redirecting you back to /play" variant="error" fade={3000} onClose={() => router.push("/play")} />
             </div>
         )
     }

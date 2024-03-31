@@ -9,6 +9,7 @@ import LayoutWrapper from '@/components/layoutWrapper'
 
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/util/auth'
+import { ToastProvider } from '@/util/toastProvider'
 
 const open = Open_Sans({ subsets: ['latin'] })
 
@@ -26,14 +27,14 @@ export default async function RootLayout({
     const session = await getServerSession(authOptions);
 
     return (
-        <LayoutWrapper session={session}>
-            <html lang="en">
-                <body className={open.className + " w-screen h-screen p-2 select-none"}>
+        <html lang="en">
+            <body className={open.className + " w-screen h-screen p-2 select-none"}>
+                <LayoutWrapper session={session}>
                     <Sidebar />
                     {children}
-                </body>
-            </html>
-        </LayoutWrapper>
+                </LayoutWrapper>
+            </body>
+        </html>
     )
 
 

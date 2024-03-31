@@ -3,11 +3,11 @@ import { useSession } from "next-auth/react";
 import { Button, Dropdown, DropdownItem } from "./input";
 import useSocket from "@/util/socket";
 import { useEffect, useState } from "react";
-import Toast from "./toast";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { GameSettings, LobbyError } from "@/types/types";
 import { Games } from "@/backend/lobbyhandler";
+import { useToast } from "@/util/toastProvider";
 
 export default function Lobby({ gameId }: { gameId: string }) {
     const session = useSession();
@@ -15,20 +15,12 @@ export default function Lobby({ gameId }: { gameId: string }) {
     const [loading, setLoading] = useState(true);
     const [owner, setOwner] = useState(false);
 
-    const [successToastOpen, setSuccessToastOpen] = useState(false);
-    const [successToastTitle, setSuccessToastTitle] = useState("");
-    const [successToastMessage, setSuccessToastMessage] = useState("");
-
-    const [errorToastOpen, setErrorToastOpen] = useState(false);
-    const [errorToastTitle, setErrorToastTitle] = useState("");
-    const [errorToastMessage, setErrorToastMessage] = useState("");
+    const toast = useToast();
 
     const [players, setPlayers] = useState<Player[]>([]);
 
     const showLoadingError = (details?: string) => {
-        setErrorToastOpen(true)
-        setErrorToastTitle("Error")
-        setErrorToastMessage("An error occurred while fetching game data \n Details: " + details)
+        toast.enqueue({ title: "Error", text: "An error occurred while fetching game data \n Details: " + details, variant: "error", fade: 4000 })
     }
 
     useEffect(() => {
@@ -63,8 +55,7 @@ export default function Lobby({ gameId }: { gameId: string }) {
         if (loading) return
 
         if (owner) {
-            setSuccessToastOpen(true)
-            setSuccessToastTitle("You now the owner of the game")
+            toast.enqueue({ title: "Owner", text: "You are now the owner of this game", variant: "success", fade: 2000 })
         }
 
     }, [owner])
@@ -73,9 +64,7 @@ export default function Lobby({ gameId }: { gameId: string }) {
         // Set the game
         socket?.emit("setGame", { gameId: gameId, userId: session.data?.user.id, gameType: "POKER" }, (res: any) => {
             if (res.status === "error") {
-                setErrorToastOpen(true)
-                setErrorToastTitle("Error")
-                setErrorToastMessage("An error occurred while setting the game \n Error: " + LobbyError[res.errorMessage])
+                toast.enqueue({ title: "Error", text: "An error occurred while setting the game \n Error: " + LobbyError[res.errorMessage], variant: "error", fade: 4000 })
                 return
             }
         })
@@ -83,15 +72,11 @@ export default function Lobby({ gameId }: { gameId: string }) {
 
         socket?.emit("startGame", { gameId: gameId, userId: session.data?.user.id }, (res: any) => {
             if (res.status === "error") {
-                setErrorToastOpen(true)
-                setErrorToastTitle("Error")
-                setErrorToastMessage("An error occurred while starting the game \n Error: " + LobbyError[res.errorMessage])
+                toast.enqueue({ title: "Error", text: "An error occurred while starting the game \n Error: " + LobbyError[res.errorMessage], variant: "error", fade: 4000 })
                 return
             }
 
-            setSuccessToastOpen(true)
-            setSuccessToastTitle("Game started")
-            setSuccessToastMessage("The game has been started")
+            toast.enqueue({ title: "Game started", text: "The game has been started", variant: "success", fade: 2000 })
         })
     }
 
@@ -108,9 +93,6 @@ export default function Lobby({ gameId }: { gameId: string }) {
             <DisplayPlayers players={players} />
 
             <LobbySettings gameId={gameId} owner={owner} />
-
-            {errorToastOpen && <Toast variant="error" title={errorToastTitle} text={errorToastMessage} fade={4000} onClose={() => setErrorToastOpen(false)} />}
-            {successToastOpen && <Toast variant="success" title={successToastTitle} text={successToastMessage} fade={2000} onClose={() => setSuccessToastOpen(false)} />}
         </div>
     )
 }

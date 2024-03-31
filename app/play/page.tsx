@@ -5,9 +5,9 @@ import { useEffect, useState } from "react"
 import useSocket from "@/util/socket"
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Toast from "@/components/toast";
 import { LobbyInfo, LobbyStatus } from "@/types/types";
 import Badge, { BadgeColor } from "@/components/badge";
+import { useToast } from "@/util/toastProvider";
 
 export default function Play() {
 
@@ -15,10 +15,18 @@ export default function Play() {
     const socket = useSocket();
     const session = useSession();
     const [noGameToast, setNoGameToast] = useState(false)
+    const toast = useToast();
 
     useEffect(() => {
         socket?.emit("fetchGames")
     }, [socket])
+
+    useEffect(() => {
+        if (noGameToast) {
+            toast.enqueue({ title: "Game not found", text: "The game you are trying to join does not exist", variant: "error", fade: 1500, onClose: () => setNoGameToast(false) })
+            setNoGameToast(false)
+        }
+    }, [noGameToast])
 
     const [gameId, setGameId] = useState("");
 
@@ -71,7 +79,6 @@ export default function Play() {
                     <OngoingGames />
                 </div>
             </div>
-            {noGameToast && <Toast title="Game not found" text="The game you are trying to join does not exist" variant="error" fade={1500} onClose={() => setNoGameToast(false)} />}
         </div>
     )
 }
