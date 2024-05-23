@@ -5,8 +5,7 @@ import useSocket from "@/util/socket";
 import { useEffect, useState } from "react";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
-import { GameSettings, LobbyError } from "@/types/types";
-import { Games } from "@/backend/lobbyhandler";
+import { GameSettings, LobbyError, PlayerInfo } from "@/types/types";
 import { useToast } from "@/util/toastProvider";
 
 export default function Lobby({ gameId }: { gameId: string }) {
@@ -17,7 +16,7 @@ export default function Lobby({ gameId }: { gameId: string }) {
 
     const toast = useToast();
 
-    const [players, setPlayers] = useState<Player[]>([]);
+    const [players, setPlayers] = useState<PlayerInfo[]>([]);
 
     const showLoadingError = (details?: string) => {
         toast.enqueue({ title: "Error", text: "An error occurred while fetching game data \n Details: " + details, variant: "error", fade: 4000 })
@@ -35,6 +34,8 @@ export default function Lobby({ gameId }: { gameId: string }) {
                 return
             }
 
+            console.log(res)
+
             setOwner(res.owner)
             // get players
             socket?.emit("getPlayers", { gameId: gameId }, (res: any) => {
@@ -48,7 +49,15 @@ export default function Lobby({ gameId }: { gameId: string }) {
             })
         })
 
+        return () => {
+            socket?.off("playersUpdate")
+        }
+
     }, [])
+
+    socket?.on("playersUpdate", (data: PlayerInfo[]) => {
+        setPlayers(data)
+    })
 
     useEffect(() => {
 
@@ -120,6 +129,7 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
         socket?.emit("updateGameSettings", { gameId: gameId, userId: session.data?.user.id, settings: settings }, (res: any) => {
             if (res.status === "error") {
                 console.log(res)
+                console.log("error while updating game settings")
                 // show error toast
                 return
             }
@@ -173,11 +183,7 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
 
 }
 
-interface Player {
-    name: string;
-}
-
-function DisplayPlayers({ players }: { players: Player[] }) {
+function DisplayPlayers({ players }: { players: PlayerInfo[] }) {
     return (
         <div className="flex flex-col items-center">
             <div className="text-xl font-bold mt-8">
@@ -186,7 +192,7 @@ function DisplayPlayers({ players }: { players: Player[] }) {
             <div className="mt-4 border">
                 {players.map((player, index) => (
                     <div key={index} className="text-lg">
-                        {player.name}
+                        {player.username}
                     </div>
                 ))}
             </div>

@@ -99,12 +99,18 @@ class Lobby {
     /**
      * Adds a message to the lobby chat.
      *
-     * @param  author The author of the message. This is NOT the id of the author
+     * @param  playerId The Id of the author 
      * @param  content The content of the message
      */
 
-    addMessage(author: string, content: string) {
-        this.messages.push({ author: author, content: content })
+    addMessage(playerId: string, content: string) {
+        let player = this.players.find(player => player.getId() === playerId)
+
+        if (!player) {
+            return
+        }
+
+        this.messages.push({ author: { id: player.getId(), username: player.getUsername() }, content: content })
     }
 
     /**
@@ -131,9 +137,9 @@ class Lobby {
 
         player.getSocket().join(this.id)
         this.players.push(player)
+
+        let rejoining: boolean = this.game?.playerInGame(player.getId())
         this.game?.addPlayer(player)
-
-
 
         // Check if a game is in progress
         if (this.status === LobbyStatus.IN_PROGRESS) {
@@ -141,7 +147,9 @@ class Lobby {
             player.getSocket().emit("gameStream", { event: GameEvent.START })
 
             // Set the player as a spectator
-            this.getGame().setSpectator(player.getId(), true)
+            if (!rejoining) {
+                this.getGame().setSpectator(player.getId(), true)
+            }
         }
     }
 
@@ -163,9 +171,14 @@ class Lobby {
 
                 // Check if the player is the owner of the lobby
                 if (player.getId() === this.owner) {
+                    // Transfer ownership to the next player
+                    // TODO: Implement this along with a better way of transmitting the ownership
+                    // back to the front end
+                    /*
                     if (!this.changeOwner(this.players[0].getId())) {
                         // There are no players left in the lobby
                     }
+                    */
                 }
 
                 return false
@@ -182,8 +195,14 @@ class Lobby {
      * @returns {boolean} True if the owner was changed, false if the player does not exist in the lobby
      */
     changeOwner(ownerId: string): boolean {
-        if (this.players.find(player => player.getId() === ownerId)) {
+        let player = this.players.find(player => player.getId() === ownerId)
+
+        // this is a bad way of doing it but at this point i dont care
+        if (player) {
+            let lastOwner = this.players.find(player => player.getId() === this.owner)
+            lastOwner?.getSocket().emit("notOwner")
             this.owner = ownerId
+            player.getSocket().emit("owner")
             return true
         }
 
@@ -194,7 +213,8 @@ class Lobby {
      * @param  id  The id to check
      * @returns  True if the player with the given id is the owner of the lobby, false if the player is not the owner
      */
-    isOwner(id: string) {
+    isOwner(id: string): boolean {
+        console.log(this.owner === id)
         return this.owner === id
     }
 
@@ -205,10 +225,10 @@ class Lobby {
      * @returns True if the player exists, false if the player does not exist
      */
 
-    playerExists(id: string) {
+    playerExists(id: string): boolean {
         return this.players.find(player => {
             return player.getId() === id
-        })
+        }) !== undefined
     }
 
     getId(): string {

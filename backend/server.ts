@@ -5,7 +5,7 @@ import ip from 'ip'
 import { LobbyHandler, Player } from './lobbyhandler.js'
 import { PokerGame, PokerPlayer, Deck, Card } from './pokergame.js'
 import { v4 as uuidv4 } from 'uuid'
-import { LobbyError, LobbyStatus } from '@/types/types.js'
+import { GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer } from '@/types/types.js'
 
 const app = express()
 const port = 4000
@@ -48,8 +48,9 @@ io.on("connection", socket => {
             return
         }
 
-        lobby.addPlayer(new Player(data.user.id, data.user.username, socket))
+        lobby.addPlayer(new Player(data.user.id, data.user.username, socket, data.user.accessToken))
         callback({ status: "ok", inProgress: lobby.status === LobbyStatus.IN_PROGRESS })
+        io.to(data.gameId).emit("playerUpate", lobby.getPlayers().map(player => player.toPlayerInfo()))
 
         io.emit("ongoingGamesStream", lobbyHandler.getGames())
     })
@@ -62,6 +63,11 @@ io.on("connection", socket => {
         }
 
         lobby.removePlayer(data.user.id)
+
+        // TODO: it is very dangerous to emit the userId like this. 
+        // We do NOT want to give other users the ability to know the userId of other users.
+        // This should be changed to a uuid instead, and keep the userId on the server side.
+        io.to(data.gameId).emit("playerLeft", { userId: data.user.id })
 
         if (lobby.getPlayers().length === 0 && deleteLobbyOnEmpty) {
             console.log("removing lobby" + lobby)
@@ -96,22 +102,15 @@ io.on("connection", socket => {
         cb(lobby.getMessages())
     })
 
-    socket.on("sendMessage", (data) => {
+    socket.on("sendMessage", (data: MessageTransfer) => {
         // Get lobby
         const lobby = lobbyHandler.getLobbyByCode(data.gameId)
 
-        // Check if user is in lobby
-        if (!lobby?.playerExists(data.authorId)) {
-
-            // Send error message?
-            return
-        }
-
         // Add message to lobby
-        lobby.addMessage(data.author, data.content)
+        lobby.addMessage(data.message.author.id, data.message.content)
 
         // Send message to all players in lobby
-        io.to(data.gameId).emit("chatMessage", data)
+        io.to(data.gameId).emit("chatMessage", data.message)
     })
 
     socket.on("gameExists", (gameId, cb) => {
@@ -123,6 +122,7 @@ io.on("connection", socket => {
     })
 
     socket.on("ownerOf", (data, cb) => {
+        console.log(data)
         const lobby = lobbyHandler.getLobbyByCode(data.gameId)
         if (!lobby) {
             cb({ status: "error" })
@@ -133,6 +133,8 @@ io.on("connection", socket => {
             cb({ status: "ok", owner: true })
             return
         }
+
+        console.log("ownerOf: " + data.userId + " " + lobby.getOwner())
 
         cb({ status: "ok", owner: false })
     })
@@ -181,7 +183,10 @@ io.on("connection", socket => {
         if (!game.playerInput(data.userId, data.action)) {
             cb({ status: "error", errorMessage: "Invalid action" })
         }
-        cb({ status: "ok" })
+
+        io.to(data.gameId).emit("gameStream", { player: { id: data.userId, username: data.username }, event: GameEvent.ACTION } as GameStream)
+
+        cb({ status: "ok", })
     })
 
     socket.on("getGameSettings", (data, cb) => {
@@ -254,7 +259,7 @@ io.on("connection", socket => {
             cb({ status: "error", errorMessage: "No game" })
             return
         }
-        console.log(data.userId)
+
         cb({ status: "ok", gameState: lobby.getGame().getState(data.userId) })
     })
 

@@ -6,7 +6,7 @@ import { TextInput, Button } from "./input"
 import { ChatMessage } from "./chatMessage"
 import { useSession } from "next-auth/react"
 import { useAnimate } from "framer-motion"
-import { Message } from "@/types/types"
+import { Message, MessageTransfer } from "@/types/types"
 
 export default function Chat({ gameId }: { gameId: string }) {
     const [loading, setLoading] = useState(true)
@@ -18,7 +18,7 @@ export default function Chat({ gameId }: { gameId: string }) {
 
     const sendMessage = (message: string) => {
         if (message.length < 1) return
-        socket?.emit("sendMessage", { gameId: gameId, author: session.data?.user.name, authorId: session.data?.user.id, content: message })
+        socket?.emit("sendMessage", { gameId: gameId, message: { author: { id: session.data?.user.id, username: session.data?.user.name }, content: input } } as MessageTransfer)
 
         if (chatBoxRef.current) chatBoxRef.current.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" })
         chatBoxRef.current ? chatBoxRef.current.value = "" : null
@@ -107,13 +107,13 @@ function Messages({ messages }: { messages?: Message[] }) {
                 {messages.toReversed().map((message, i) => {
                     if (i === 0) {
                         return (
-                            <div key={i} ref={chatFadeIn}>
+                            <div key={message.author.username + message.content + i} ref={chatFadeIn}>
                                 <ChatMessage {...message} />
                             </div>
                         )
                     }
                     return (
-                        <div key={i}>
+                        <div key={message.author.username + message.content + i}>
                             <ChatMessage {...message} />
                         </div>
                     )

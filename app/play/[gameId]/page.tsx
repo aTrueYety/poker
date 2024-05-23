@@ -20,7 +20,7 @@ export default function Play({ params }: { params: { gameId: string } }) {
 
     const [spectating, setSpectating] = useState<boolean>(false);
 
-    const userData = { user: { id: session.data?.user.id, username: session.data?.user.name }, gameId: params.gameId }
+    const userData = { user: { id: session.data?.user.id, username: session.data?.user.name, accessToken: session.data?.user.accessToken }, gameId: params.gameId }
     const toast = useToast()
 
     useEffect(() => {

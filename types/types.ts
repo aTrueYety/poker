@@ -7,8 +7,14 @@ import { DefaultEventsMap } from "socket.io/dist/typed-events";
  */
 export type Message = {
     content: string;
-    author: string;
+    author: PlayerInfo;
 };
+
+
+export interface MessageTransfer {
+    gameId: string;
+    message: Message;
+}
 
 /**
  * Barebones information about a lobby
@@ -76,6 +82,7 @@ export interface Game {
     playerInput(playerid: string, action: GameAction): boolean
     getState(userId: string): any;
     setSpectator(playerId: string, value: boolean): void;
+    playerInGame(playerId: string): boolean;
 }
 
 /**
@@ -109,12 +116,14 @@ export interface GameSettings {
 export class Player {
     private id: string
     private username: string
+    private accessToken: string
     private socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>
 
-    constructor(id: string, username: string, socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
+    constructor(id: string, username: string, socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, accessToken: string) {
         this.id = id
         this.username = username
         this.socket = socket
+        this.accessToken = accessToken
     }
 
     public getSocket(): Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any> {
@@ -127,6 +136,17 @@ export class Player {
 
     public getUsername(): string {
         return this.username
+    }
+
+    public getAccessToken(): string {
+        return this.accessToken
+    }
+
+    public toPlayerInfo(): PlayerInfo {
+        return {
+            id: this.id,
+            username: this.username
+        }
     }
 }
 
@@ -145,14 +165,28 @@ export enum LobbyError {
 
 export enum GameEvent {
     ACTION,
+    END_OF_ROUND,
     START,
     END
 }
 
 export interface GameStream {
     event: GameEvent;
-    player: string;
-    message: string;
+    player: PlayerInfo;
+    message: any;
+}
+
+// TODO: Include more player info to be displayed to the front end
+export interface PlayerInfo {
+    id: string;
+    username: string;
+}
+
+export interface PokerPlayerInfo extends PlayerInfo {
+    pot: number,
+    lastAction: string,
+    bank: number,
+    allIn: boolean
 }
 
 

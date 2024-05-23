@@ -1,4 +1,4 @@
-import { Game, GameAction, Suit, Value } from "@/types/types";
+import { Game, GameAction, PokerPlayerInfo, Suit, Value } from "@/types/types";
 import { Player } from "./lobbyhandler";
 
 interface Holder {
@@ -14,9 +14,11 @@ class PokerPlayer extends Player implements Holder {
     public roundPot: number
     public hand: Card[]
     public isSpectating: boolean
+    public hasForfeit: boolean // If the player has left the game or not perfomed an action in time
+    public hasLeft: boolean // If the player has left the game, but can still rejoin the game
 
     constructor(player: Player, hand: Card[] = [], bank: number = 2000, isSpectating = false) {
-        super(player.getId(), player.getUsername(), player.getSocket())
+        super(player.getId(), player.getUsername(), player.getSocket(), player.getAccessToken())
         this.hand = hand;
         this.bank = bank
         this.lastAction = null;
@@ -71,7 +73,7 @@ class Deck {
     }
 }
 
-
+// TODO: implement time control
 class PokerGame implements Game {
     infoText: string;
     players: PokerPlayer[]
@@ -82,6 +84,7 @@ class PokerGame implements Game {
     private deck: Deck
     private pot: number
     private turnPot: number
+    public ingame: boolean
 
     constructor(_players: Player[], board = new PokerBoard(), blinds = [10, 20], blindTurn = 0) {
         this.players = _players.map((p) => { return new PokerPlayer(p) })
@@ -93,6 +96,7 @@ class PokerGame implements Game {
         this.pot;
         this.turnPot;
         this.infoText = "Poker - texas holdem"
+        this.ingame = false
 
         // add obvservers
     }
@@ -213,7 +217,18 @@ class PokerGame implements Game {
         return null;
     }
 
+    playerInGame(playerID: string) {
+        for (const player in this.players) {
+            if (this.players[player].getId() == playerID) { return true; }
+        }
+        return false;
+    }
+
     addPlayer(player: Player): void {
+        if (this.playerInGame(player.getId())) {
+            return
+        }
+
         this.players.push(new PokerPlayer(player));
     }
 
@@ -226,6 +241,11 @@ class PokerGame implements Game {
 
     removePlayer(playerId: string): void {
         console.log(playerId + " is leaving")
+
+        if (this.ingame) {
+            this.players.find(p => p.getId() === playerId).hasLeft = true
+            return
+        }
 
         this.players = this.players.filter(p => {
             return p.getId() !== playerId
@@ -354,6 +374,8 @@ class PokerGame implements Game {
         this.players.forEach(player => {
             player.getSocket().emit("gameStream", { event: "startRound", data: { players: this.players.map(player => { return player.getUsername() }), board: this.board.hand, blinds: this.blinds } })
         })
+
+        this.ingame = true
     }
 
     endRound() { // this assumes all player in game not folded have the sama amount of money in the pot or are all in
@@ -418,22 +440,33 @@ class PokerGame implements Game {
             }
         }
         this.bumpBlindTurn(1 + blindTurnOffset);
-        // start a new game 
-        this.startRound()
+
+        // check if game is over
+        this.ingame = false
+
+        // remove all players that has left the game
+        this.players.forEach(player => {
+            if (player.hasLeft) {
+                this.removePlayer(player.getId())
+            }
+        })
+
+        // start a new game
+        //this.startRound()
     }
 
     // if the winner(s) are all in then run this again with all players without the winner(s) to find where the eventual rest of pot should go
     getWinners(subjects = this.players) { // returns an array of the winner or winners there are multiple in a tie. Takes in an array of players
         let candidates = [];
-        for (let i = 0; i < subjects.length; i++) {
-            const player = subjects[i];
+        for (const element of subjects) {
+            const player = element;
             if (player.lastAction != "fold") { candidates.push(player); }
         }
         if (candidates.length == 1) { console.log("Winner: " + candidates[0].name); return; } // if only one player left then they are the winner
         let bestHands = [];
-        for (let i = 0; i < candidates.length; i++) {
+        for (const element of candidates) {
             // get candidate
-            const candidate = candidates[i];
+            const candidate = element;
             // get all cards
             // let allCards = [];
             // for (let i = 0; i < this.board.hand.length; i++) {allCards.push(this.board.hand[i]);}
@@ -569,7 +602,17 @@ class PokerGame implements Game {
     public getState(userId: string) {
         return {
             cards: this.players.find(p => p.getId() === userId)?.hand,
-            players: this.players.map(player => { return player.getUsername() }),
+            otherPlayers: this.players.map(player => {
+                return {
+                    username: player.getUsername(),
+                    id: player.getId(),
+                    pot: player.roundPot,
+                    lastAction: player.lastAction,
+                    bank: player.bank,
+                    allIn: player.allIn
+                } as PokerPlayerInfo
+            }),
+
             board: this.board.hand,
             blinds: this.blinds,
             pot: this.pot,
@@ -577,7 +620,6 @@ class PokerGame implements Game {
             turnPot: this.turnPot,
             spectating: this.players.find(p => p.getId() === userId)?.isSpectating,
             allSpectators: this.players.filter(p => p.isSpectating).map(p => p.getUsername())
-
         }
     }
 
