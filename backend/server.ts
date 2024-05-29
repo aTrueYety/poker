@@ -4,7 +4,7 @@ import express from 'express'
 import ip from 'ip'
 import LobbyHandler from './lobbyhandler'
 import { v4 as uuidv4 } from 'uuid'
-import { GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer, Player } from '@/types/types.js'
+import { GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer, Player, RoomFunctions } from '@/types/types.js'
 
 const app = express()
 const port = 4000
@@ -47,7 +47,7 @@ io.on("connection", socket => {
             return
         }
 
-        lobby.addPlayer(new Player(data.user.id, data.user.username, socket, data.user.accessToken))
+        lobby.addPlayer(new Player(data.user.id, data.user.username, socket.emit, { join: socket.join, leave: socket.leave } as RoomFunctions, data.user.accessToken))
         callback({ status: "ok", inProgress: lobby.status === LobbyStatus.IN_PROGRESS })
         io.to(data.gameId).emit("playerUpate", lobby.getPlayers().map(player => player.toPlayerInfo()))
 

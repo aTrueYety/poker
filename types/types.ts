@@ -111,23 +111,35 @@ export interface GameSettings {
 }
 
 /**
+ * A function that sends a message to a user.
+ */
+export type NotifyUserFunction = (event: string, ...args: any[]) => void;
+
+/**
+ * A function that allows a player to join and leave rooms
+ */
+export interface RoomFunctions {
+    leave: (room: string) => Promise<void>;
+    join: (room: string) => Promise<void>;
+}
+
+
+/**
  * A player that with an access token, socket and username
  */
 export class Player {
     private id: string
     private username: string
     private accessToken: string
-    private socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>
+    public notify: NotifyUserFunction
+    public romFunctions: RoomFunctions
 
-    constructor(id: string, username: string, socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, accessToken: string) {
+    constructor(id: string, username: string, notify: NotifyUserFunction, roomFunctions: RoomFunctions, accessToken: string) {
         this.id = id
         this.username = username
-        this.socket = socket
+        this.notify = notify
+        this.romFunctions = roomFunctions;
         this.accessToken = accessToken
-    }
-
-    public getSocket(): Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any> {
-        return this.socket
     }
 
     public getId(): string {

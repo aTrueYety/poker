@@ -74,7 +74,7 @@ export default class Lobby {
 
         // Send start message to clients
         this.players.forEach(player => {
-            player.getSocket().emit("gameStream", { event: GameEvent.START })
+            player.notify("gameStream", { event: GameEvent.START })
         })
 
         this.game.startRound();
@@ -129,7 +129,7 @@ export default class Lobby {
             return
         }
 
-        player.getSocket().join(this.id)
+        player.romFunctions.join(this.id)
         this.players.push(player)
 
         let rejoining: boolean | undefined = this.game?.playerInGame(player.getId())
@@ -138,7 +138,7 @@ export default class Lobby {
         // Check if a game is in progress
         if (this.status === LobbyStatus.IN_PROGRESS) {
             // Send start message to the player
-            player.getSocket().emit("gameStream", { event: GameEvent.START })
+            player.notify("gameStream", { event: GameEvent.START })
 
             // Set the player as a spectator
             if (!rejoining) {
@@ -158,7 +158,7 @@ export default class Lobby {
             if (player.getId() === id) {
 
                 // Leave the socket room
-                player.getSocket().leave(this.id)
+                player.romFunctions.leave(this.id)
 
                 // Leave the game
                 this.game?.removePlayer(player.getId())
@@ -194,9 +194,9 @@ export default class Lobby {
         // this is a bad way of doing it but at this point i dont care
         if (player) {
             let lastOwner = this.players.find(player => player.getId() === this.owner)
-            lastOwner?.getSocket().emit("notOwner")
+            lastOwner?.notify("notOwner")
             this.owner = ownerId
-            player.getSocket().emit("owner")
+            player.notify("owner")
             return true
         }
 

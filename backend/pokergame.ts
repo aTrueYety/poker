@@ -16,7 +16,7 @@ class PokerPlayer extends Player implements Holder {
     public hasLeft: boolean // If the player has left the game, but can still rejoin the game
 
     constructor(player: Player, hand: Card[] = [], bank: number = 2000, isSpectating = false) {
-        super(player.getId(), player.getUsername(), player.getSocket(), player.getAccessToken())
+        super(player.getId(), player.getUsername(), player.notify, player.romFunctions, player.getAccessToken())
         this.hand = hand;
         this.bank = bank
         this.lastAction = null;
@@ -397,7 +397,7 @@ class PokerGame implements Game {
         }
 
         this.players.forEach(player => {
-            player.getSocket().emit("gameStream", { event: "startRound", data: { players: this.players.map(player => { return player.getUsername() }), board: this.board.hand, blinds: this.blinds } })
+            player.notify("gameStream", { event: "startRound", data: { players: this.players.map(player => { return player.getUsername() }), board: this.board.hand, blinds: this.blinds } })
         })
 
         this.ingame = true

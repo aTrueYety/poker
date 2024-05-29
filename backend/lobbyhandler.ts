@@ -44,7 +44,7 @@ export default class LobbyHandler {
             if (lobby.getId() !== code) {
                 // Kick all players
                 lobby.getPlayers().forEach(player => {
-                    player.getSocket().leave(code)
+                    player.romFunctions.leave(code)
                     // player.socket.emit("kicked" + lobby.id)
                 })
                 return true
