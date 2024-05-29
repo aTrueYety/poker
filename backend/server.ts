@@ -2,10 +2,9 @@ import { Server } from 'socket.io'
 import { createServer } from 'node:http'
 import express from 'express'
 import ip from 'ip'
-import { LobbyHandler, Player } from './lobbyhandler.js'
-import { PokerGame, PokerPlayer, Deck, Card } from './pokergame.js'
+import LobbyHandler from './lobbyhandler'
 import { v4 as uuidv4 } from 'uuid'
-import { GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer } from '@/types/types.js'
+import { GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer, Player } from '@/types/types.js'
 
 const app = express()
 const port = 4000
