@@ -580,21 +580,21 @@ class PokerGame implements Game {
         let res = [];
         for (let i = 0; i < 14; i++) { res.push(0); }
         hand.sort(function (a, b) { return b.value - a.value });
-        let pairs = []
+        let pairs: number[] = [];
         let testSuit = hand[0].suit;
         res[5] = 1;
         let testValue = hand[0].value;
         res[6] = testValue;
         for (let i = 0; i < hand.length; i++) {
             const card = hand[i];
-            const otherCards = [...hand]; // check for pair
+            const otherCards: (Card | null)[] = [...hand]; // check for pair
             otherCards.splice(i, 1); // remove this card from otherCards, may be a bug here where it removed the card from the hand array. Needs testing
             let similars = 0;
             for (let j = i; j < otherCards.length; j++) {
                 if (otherCards[j] == null) { continue; }
-                if (card.value == otherCards[j].value) {
+                if (card.value == otherCards[j]?.value) {
                     similars++;
-                    //otherCards[j] = null
+                    otherCards[j] = null
                 }
             }
             if (similars == 1) { pairs.push(card.value); }
@@ -613,8 +613,17 @@ class PokerGame implements Game {
         // check for pair            9
         if (pairs.length > 0) { res[9] = pairs[0]; }
         // check for full house      3 and 4
-        if (pairs.length > 1) { if (res[7] != 0 && res[8] != 0) { res[3] = res[7]; res[4] = res[8]; } }
-        else if (res[7] != 0 && res[9] != 0) { res[3] = res[7]; res[4] = res[9]; }
+        if (pairs.length > 1) {
+            if (res[7] != 0 && res[8] != 0) {
+                res[3] = res[7];
+                res[4] = res[8];
+            }
+        }
+        else if (res[7] != 0 && res[9] != 0 && res[7] != res[9]) {
+            res[3] = res[7];
+            res[4] = res[9];
+
+        }
         // check for straight flush  1
         if (res[5] != 0 && res[6] != 0) { res[1] = res[6]; }
         // check for royal flush     0
