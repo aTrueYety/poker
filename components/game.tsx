@@ -38,21 +38,6 @@ export default function Game({ gameId, spectating }: { gameId: string, spectatin
         })
     }
 
-    socket?.on("gameStream", (data: GameStream) => {
-        console.log(data)
-
-        if (data.event === GameEvent.END_OF_ROUND) {
-            endOfRoundUpdate(data)
-            return
-        }
-
-        if (data.event === GameEvent.ACTION) {
-            actionUpdate(data.message)
-            return
-        }
-    })
-
-
     const toast = useToast();
 
     useEffect(() => {
@@ -64,6 +49,20 @@ export default function Game({ gameId, spectating }: { gameId: string, spectatin
 
             if (res.gameState.spectating) {
                 toast.enqueue({ title: "Spectating", text: "This game is in progress. You are now spectating", variant: "info", fade: 2000 })
+            }
+        })
+
+        socket?.on("gameStream", (data: GameStream) => {
+            console.log(data)
+
+            if (data.event === GameEvent.END_OF_ROUND) {
+                endOfRoundUpdate(data)
+                return
+            }
+
+            if (data.event === GameEvent.ACTION) {
+                actionUpdate(data.message)
+                return
             }
         })
     }, [])

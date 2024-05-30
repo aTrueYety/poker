@@ -135,6 +135,10 @@ export default class Lobby {
         let rejoining: boolean | undefined = this.game?.playerInGame(player.getId())
         this.game?.addPlayer(player)
 
+        this.players.forEach(player => {
+            player.notify("playersUpdate", this.getPlayersAsUsername())
+        })
+
         // Check if a game is in progress
         if (this.status === LobbyStatus.IN_PROGRESS) {
             // Send start message to the player
@@ -179,6 +183,11 @@ export default class Lobby {
             }
 
             return true
+        })
+
+        // Notify all players of the update
+        this.players.forEach(player => {
+            player.notify("playersUpdate", this.getPlayersAsUsername())
         })
     }
 

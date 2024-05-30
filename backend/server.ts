@@ -5,6 +5,7 @@ import ip from 'ip'
 import LobbyHandler from './lobbyhandler'
 import { v4 as uuidv4 } from 'uuid'
 import { GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer, Player, RoomFunctions } from '@/types/types.js'
+import { event } from 'cypress/types/jquery'
 
 const app = express()
 const port = 4000
@@ -230,6 +231,7 @@ io.on("connection", socket => {
         lobby.setSettings(data.settings)
         cb({ status: "ok" })
         io.emit("ongoingGamesStream", lobbyHandler.getGames())
+        socket.to(data.gameId).emit("gameSettingsUpdate", data.settings);
     })
 
     socket.on("setGame", (data, cb) => {

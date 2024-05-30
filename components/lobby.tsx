@@ -5,7 +5,7 @@ import useSocket from "@/util/socket";
 import { useEffect, useState } from "react";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
-import { GameSettings, LobbyError, PlayerInfo } from "@/types/types";
+import { DefaultTimeControls, GameSettings, LobbyError, PlayerInfo } from "@/types/types";
 import { useToast } from "@/util/toastProvider";
 
 export default function Lobby({ gameId }: { gameId: string }) {
@@ -34,8 +34,6 @@ export default function Lobby({ gameId }: { gameId: string }) {
                 return
             }
 
-            console.log(res)
-
             setOwner(res.owner)
             // get players
             socket?.emit("getPlayers", { gameId: gameId }, (res: any) => {
@@ -44,9 +42,13 @@ export default function Lobby({ gameId }: { gameId: string }) {
                     return
                 }
 
-                setPlayers(res.players.map((player: any) => ({ name: player })))
+                setPlayers(res.players.map((player: any) => ({ username: player })))
                 setLoading(false)
             })
+        })
+
+        socket?.on("playersUpdate", (data: any) => {
+            setPlayers(data.map((player: any) => ({ username: player })))
         })
 
         return () => {
@@ -54,10 +56,6 @@ export default function Lobby({ gameId }: { gameId: string }) {
         }
 
     }, [])
-
-    socket?.on("playersUpdate", (data: PlayerInfo[]) => {
-        setPlayers(data)
-    })
 
     useEffect(() => {
 
@@ -110,6 +108,7 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
     const socket = useSocket();
     const [loading, setLoading] = useState(true);
     const [settings, setSettings] = useState<GameSettings>();
+    const [justUpdated, setJustUpdated] = useState(false)
     const session = useSession();
 
     useEffect(() => {
@@ -121,10 +120,20 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
             setSettings(res.settings)
             setLoading(false)
         })
+
+        socket?.on("gameSettingsUpdate", (settings: GameSettings) => {
+            setSettings(settings)
+            setJustUpdated(true)
+        });
     }, [])
 
     useEffect(() => {
         if (loading) { return }
+
+        if (justUpdated) {
+            setJustUpdated(false)
+            return
+        }
 
         socket?.emit("updateGameSettings", { gameId: gameId, userId: session.data?.user.id, settings: settings }, (res: any) => {
             if (res.status === "error") {
@@ -164,7 +173,7 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
             <div className="mt-4 ">
                 <div className="flex flex-row justify-between items-center">
                     <Label className="pr-2 w-full cursor-pointer" htmlFor="rated">Rated</Label>
-                    <Switch disabled={!owner} onCheckedChange={(b) => { setRated(b) }} defaultChecked={settings?.rated} id={"rated"} />
+                    <Switch disabled={!owner} onCheckedChange={(b) => { setRated(b) }} checked={settings?.rated} defaultChecked={settings?.rated} id={"rated"} />
                 </div>
 
                 <div className="flex space-x-6 flex-row justify-between items-center mt-2">
@@ -173,7 +182,9 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
                     </div>
                     <Dropdown open={-1} >
                         <DropdownItem>No time control</DropdownItem>
+                        <DropdownItem>Bullet</DropdownItem>
                         <DropdownItem>Blitz</DropdownItem>
+                        <DropdownItem>Rapid</DropdownItem>
                         <DropdownItem>Custom</DropdownItem>
                     </Dropdown>
                 </div>
@@ -191,7 +202,7 @@ function DisplayPlayers({ players }: { players: PlayerInfo[] }) {
             </div>
             <div className="mt-4 border">
                 {players.map((player, index) => (
-                    <div key={index} className="text-lg">
+                    <div key={index + "" + player.id} className="text-lg">
                         {player.username}
                     </div>
                 ))}
