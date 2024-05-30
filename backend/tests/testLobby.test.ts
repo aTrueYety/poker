@@ -1,15 +1,22 @@
-import { Game, LobbyError, LobbyStatus, Player, RoomFunctions } from "@/types/types";
+import { Game, GameEvent, LobbyError, LobbyStatus, Player, RoomFunctions } from "@/types/types";
 import Lobby from "../lobby";
 import { expect } from "@jest/globals";
 import { Games } from "../games";
-import { jest } from "@jest/globals";
+import { jest, test, describe, beforeEach } from "@jest/globals";
 
 describe("testLobby", () => {
     let lobby: Lobby;
+    let joinCallback = jest.fn();
+    let leaveCallback = jest.fn();
+    let notifyCallback = jest.fn();
 
     beforeEach(() => {
         lobby = new Lobby("ABCD", "1", "player1")
-        lobby.addPlayer(new Player("1", "player1", (a) => { }, { join: (a) => { }, leave: (a) => { } } as RoomFunctions, "1"))
+        joinCallback.mockClear();
+        leaveCallback.mockClear();
+        notifyCallback.mockClear();
+        let roomFunctions = { join: joinCallback, leave: leaveCallback } as RoomFunctions;
+        lobby.addPlayer(new Player("1", "player1", notifyCallback, roomFunctions, "1"))
     });
 
     test("testGetPlayersAsUsername", () => {
@@ -58,9 +65,22 @@ describe("testLobby", () => {
     });
 
     test("testStartGame", () => {
-        lobby.setGame("POKER")
-        lobby.startGame()
-        expect(lobby.status).toBe(LobbyStatus.IN_PROGRESS)
+        lobby.setGame("POKER");
+        lobby.startGame();
+        expect(lobby.status).toBe(LobbyStatus.IN_PROGRESS);
+        expect(notifyCallback.mock.calls).toHaveLength(2);
+        expect(notifyCallback.mock.calls[0][1]).toStrictEqual({ event: GameEvent.START }); // First message to socket should be game start
+    });
+
+    test("testJoinGameInProgress", () => {
+        lobby.setGame("POKER");
+        lobby.startGame();
+
+        let nc = jest.fn();
+        lobby.addPlayer(new Player("2", "player2", nc, { join: (a) => { }, leave: (a) => { } } as RoomFunctions, "2"))
+        expect(lobby.getGame()?.players.length).toBe(2)
+        expect(nc.mock.calls).toHaveLength(1);
+        expect(nc.mock.calls[0][1]).toStrictEqual({ event: GameEvent.START }); // New player should receive game start message
     });
 
     test("testStartGameNoGameSet", () => {

@@ -5,7 +5,6 @@ import Lobby from "./lobby"
 export default class LobbyHandler {
     private lobbies: Lobby[]
     constructor() {
-        Lobby
         this.lobbies = []
     }
 
@@ -41,14 +40,16 @@ export default class LobbyHandler {
     removeLobby(code: string) {
         // this is a bit ugly
         this.lobbies = this.lobbies.filter(lobby => {
-            if (lobby.getId() !== code) {
+            if (lobby.getId() === code) {
                 // Kick all players
                 lobby.getPlayers().forEach(player => {
                     player.romFunctions.leave(code)
-                    // player.socket.emit("kicked" + lobby.id)
+                    player.notify("lobbyDeleted");
                 })
-                return true
+                return false;
             }
+
+            return true
         })
     }
 
