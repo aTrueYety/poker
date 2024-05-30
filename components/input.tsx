@@ -113,6 +113,7 @@ export const Dropdown = ({ children, open }: { children: reactChild | multipleRe
 
     Array.isArray(children) ? children : children = [children];
 
+
     if (selectedItem >= children.length) setSelectedItem(-1);
 
     useEffect(() => {
@@ -216,9 +217,11 @@ export const Dropdown = ({ children, open }: { children: reactChild | multipleRe
                 )) : <motion.button
                     className='dropdownItem flex py-3 px-3 w-full'
                     onClick={() => {
-                        children.at(0)?.props.onSelect?.();
-                        setIsOpen(false);
-                        setSelectedItem(-1);
+                        if (children instanceof Array) {
+                            children.at(0)?.props.onSelect?.();
+                            setIsOpen(false);
+                            setSelectedItem(-1);
+                        }
                     }}
                     whileHover={{ scale: 1.02, x: 5, fontWeight: 450 }}
                 >

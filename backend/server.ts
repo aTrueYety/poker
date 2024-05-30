@@ -105,6 +105,10 @@ io.on("connection", socket => {
         // Get lobby
         const lobby = lobbyHandler.getLobbyByCode(data.gameId)
 
+        if (!lobby) {
+            return
+        }
+
         // Add message to lobby
         lobby.addMessage(data.message.author.id, data.message.content)
 
@@ -254,13 +258,14 @@ io.on("connection", socket => {
             return
         }
 
-        if (!lobby.getGame()) {
+        let game = lobby.getGame()
+
+        if (!game) {
             cb({ status: "error", errorMessage: "No game" })
             return
         }
 
-        cb({ status: "ok", gameState: lobby.getGame().getState(data.userId) })
+        cb({ status: "ok", gameState: game.getState(data.userId) })
     })
 
 })
-
