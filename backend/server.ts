@@ -47,7 +47,13 @@ io.on("connection", socket => {
             return
         }
 
-        lobby.addPlayer(new Player(data.user.id, data.user.username, socket.emit, { join: socket.join, leave: socket.leave } as RoomFunctions, data.user.accessToken))
+        lobby.addPlayer(new Player(data.user.id, data.user.username,
+            (ev, args) => socket.emit(ev, args),
+            {
+                join: (room: string) => socket.join(room),
+                leave: (room: string) => socket.leave(room),
+            } as RoomFunctions,
+            data.user.accessToken))
         callback({ status: "ok", inProgress: lobby.status === LobbyStatus.IN_PROGRESS })
         io.to(data.gameId).emit("playerUpate", lobby.getPlayers().map(player => player.toPlayerInfo()))
 

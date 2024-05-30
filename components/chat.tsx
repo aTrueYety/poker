@@ -105,16 +105,22 @@ function Messages({ messages }: { messages?: Message[] }) {
         <div className="flex flex-col-reverse overflow-y-scroll overflow-x-hidden p-2">
             <div ref={scope} className="flex flex-col-reverse">
                 {messages.toReversed().map((message, i) => {
+                    console.log("")
+                    console.log(messages.toReversed().at(i - 1))
+                    console.log(message)
+
+                    console.log(messages.toReversed().at(i - 1)?.author.id != message.author.id)
+
                     if (i === 0) {
                         return (
                             <div key={message.author.username + message.content + i} ref={chatFadeIn}>
-                                <ChatMessage {...message} />
+                                <ChatMessage message={message} displayAuthor={messages.toReversed().at(i + 1)?.author.id !== message.author.id} />
                             </div>
                         )
                     }
                     return (
                         <div key={message.author.username + message.content + i}>
-                            <ChatMessage {...message} />
+                            <ChatMessage message={message} displayAuthor={messages.toReversed().at(i + 1)?.author.id !== message.author.id} />
                         </div>
                     )
                 })}
