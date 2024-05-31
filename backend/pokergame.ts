@@ -1,4 +1,4 @@
-import { Game, GameAction, PokerPlayerInfo, Suit, Value, Player } from "@/types/types";
+import { Game, GameAction, PokerPlayerInfo, Suit, Value, Player, PokerGameState, PlayerInfo, PokerAction } from "@/types/types";
 
 export interface Holder {
     hand: Card[]
@@ -227,6 +227,40 @@ class PokerGame implements Game {
                 console.log("action not found");
                 return false;
         }
+    }
+
+    private getAvailableActions(userId: string): PokerAction[] {
+        const player = this.players.find(p => p.getId() === userId);
+
+        if (!player) {
+            return []
+        }
+
+        if (player.allIn) {
+            return []
+        }
+
+        if (player.lastAction === "fold") {
+            return []
+        }
+
+        const actions: PokerAction[] = []
+
+        const topPot = Math.max(...this.players.map(p => p.turnPot))
+
+        console.log("Top pot: " + topPot)
+
+        if (topPot > player.turnPot) {
+            actions.push(PokerAction.CALL)
+            actions.push(PokerAction.RAISE)
+        } else {
+            actions.push(PokerAction.CHECK)
+            actions.push(PokerAction.BET)
+        }
+
+        actions.push(PokerAction.FOLD)
+        return actions;
+
     }
 
     findPlayer(playerID: string) {
@@ -634,27 +668,50 @@ class PokerGame implements Game {
         return res;
     }
 
-    public getState(userId: string) {
+    public getState(userId: string): PokerGameState {
         return {
             cards: this.players.find(p => p.getId() === userId)?.hand,
-            otherPlayers: this.players.map(player => {
-                return {
-                    username: player.getUsername(),
-                    id: player.getId(),
-                    pot: player.roundPot,
-                    lastAction: player.lastAction,
-                    bank: player.bank,
-                    allIn: player.allIn
-                } as PokerPlayerInfo
-            }),
+            otherPlayers: this.players.filter(p => p.getId() !== userId)
+                .map(player => {
+                    return {
+                        username: player.getUsername(),
+                        id: player.getId(),
+                        pot: player.roundPot,
+                        lastAction: player.lastAction,
+                        bank: player.bank,
+                        allIn: player.allIn,
+                        turnpot: player.turnPot
+                    } as PokerPlayerInfo
+                }),
 
             board: this.board.hand,
             blinds: this.blinds,
             pot: this.pot,
             turn: this.turn,
-            turnPot: this.turnPot,
+            turnpot: this.turnPot,
             spectating: this.players.find(p => p.getId() === userId)?.isSpectating,
-            allSpectators: this.players.filter(p => p.isSpectating).map(p => p.getUsername())
+            allSpectators: this.players.filter(p => p.isSpectating).map(p => {
+                return {
+                    id: p.getId(),
+                    username: p.getUsername(),
+                } as PlayerInfo
+            }),
+            yourTurn: this.players[this.turn].getId() === userId,
+
+            //TODO: this is VERY hacky. Fix :)
+            yourPlayer: Array(this.players.find(p => p.getId() === userId)).map((player) => {
+                return {
+                    id: player.getId(),
+                    username: player.getUsername(),
+                    pot: player.roundPot,
+                    lastAction: player.lastAction,
+                    bank: player.bank,
+                    allIn: player.allIn,
+                    turnpot: player.turnPot
+                } as PokerPlayerInfo
+            }).at(0),
+
+            availableActions: this.getAvailableActions(userId)
         }
     }
 

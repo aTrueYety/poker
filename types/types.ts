@@ -188,6 +188,38 @@ export interface GameStream {
     message: any;
 }
 
+
+
+export interface GameState {
+    allSpectators: PlayerInfo[];
+    otherPlayers: PlayerInfo[];
+    spectating: boolean;
+    turn: number;
+}
+
+export enum PokerAction {
+    FOLD = "fold",
+    CALL = "call",
+    RAISE = "raise",
+    CHECK = "check",
+    BET = "bet"
+}
+
+export interface PokerGameState extends GameState {
+    allSpectators: PlayerInfo[];
+    otherPlayers: PokerPlayerInfo[];
+    yourPlayer: PokerPlayerInfo;
+    blinds: number[];
+    board: Card[];
+    cards: Card[];
+    pot: number;
+    yourTurn: boolean;
+    spectating: boolean;
+    turn: number;
+    turnpot: number;
+    availableActions: PokerAction[];
+}
+
 // TODO: Include more player info to be displayed to the front end
 export interface PlayerInfo {
     id: string;
@@ -196,6 +228,7 @@ export interface PlayerInfo {
 
 export interface PokerPlayerInfo extends PlayerInfo {
     pot: number,
+    turnpot: number,
     lastAction: string,
     bank: number,
     allIn: boolean

@@ -4,8 +4,8 @@ import useSocket from "@/util/socket"
 import { useSession } from "next-auth/react"
 import PokerCardArea from "./pokerCardArea"
 import { Card } from "@/backend/pokergame"
-import { GameAction, GameEvent, GameStream } from "@/types/types"
-import { useEffect, useState } from "react"
+import { GameAction, GameEvent, GameStream, PokerAction, PokerGameState, PokerPlayerInfo } from "@/types/types"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "./input"
 import { useToast } from "@/util/toastProvider"
 import PokerCardAreaBoard from "./pokerCardAreaBoard"
@@ -18,14 +18,27 @@ export default function Game({ gameId, spectating }: { gameId: string, spectatin
     const [boardCards, setBoardCards] = useState<Card[]>()
     const [turn, setTurn] = useState<number>()
     const [pot, setPot] = useState<number>()
-    const [totalPot, setTotalPot] = useState<number>()
+    const [availableActions, setAvailableActions] = useState<PokerAction[]>()
+    const [yourTurn, setYourTurn] = useState<boolean>()
+    const [otherPlayers, setOtherPlayers] = useState<PokerPlayerInfo[]>()
+    const [turnPot, setTurnPot] = useState<number>()
+    const [yourPlayer, setYourPlayer] = useState<PokerPlayerInfo>()
 
-    const parseGameState = (gameState: any) => {
+    const gameRef = useRef<HTMLDivElement>(null)
+    const [dim, setDim] = useState({ width: 0, height: 0 })
+
+    const parseGameState = (gameState: PokerGameState) => {
+        console.log("parsing")
+        console.log(gameState)
         setCards(gameState.cards)
         setBoardCards(gameState.board)
         setTurn(gameState.turn)
         setPot(gameState.pot)
-        setTotalPot(gameState.totalPot)
+        setAvailableActions(gameState.availableActions)
+        setYourTurn(gameState.yourTurn)
+        setOtherPlayers(gameState.otherPlayers)
+        setTurnPot(gameState.turnpot)
+        setYourPlayer(gameState.yourPlayer)
     }
 
     const endOfRoundUpdate = (data: GameStream) => {
@@ -43,6 +56,7 @@ export default function Game({ gameId, spectating }: { gameId: string, spectatin
     useEffect(() => {
         socket?.emit("getGameState", { gameId: gameId, userId: session.data?.user.id }, (res: any) => {
             console.log(res)
+            if (!res.gameState) return
             parseGameState(res.gameState)
 
             // TODO: Expand gamestate to include more information such as rejoing, forfeits, etc.
@@ -68,26 +82,102 @@ export default function Game({ gameId, spectating }: { gameId: string, spectatin
     }, [])
 
 
+    useEffect(() => {
+        if (yourTurn) {
+            toast.enqueue({ title: "Your turn", text: "It is now your turn to make a move", variant: "info", fade: 2000 })
+        }
+    }, [yourTurn])
+
+
+    useEffect(() => {
+        if (gameRef.current) {
+            setDim({ width: gameRef.current.clientWidth, height: gameRef.current.clientHeight })
+        }
+    }, [gameRef.current])
+
+
 
     return (
-        <div className="w-full h-full ml-20 flex justify-center">
+        <div className="w-full h-full ml-20 flex justify-center" ref={gameRef}>
             <div className="mt-20">
                 <PokerCardAreaBoard cards={boardCards} />
+                {pot ? <div className="mt-2">Total pot: {pot}</div> : null}
+                {turnPot ? <div className="mt-2">Current turn pot: {turnPot}</div> : null}
             </div>
+
+            <DistributePlayers players={otherPlayers ? otherPlayers : []} dim={dim} />
+
             <div className="bottom-0 absolute mb-20">
-                <UserArea username={session.data?.user.name} money={1000} cards={cards} onActionPerform={(action) => {
-                    socket?.emit("performGameAction", { gameId: gameId, userId: session.data?.user.id, username: session.data?.user.name, action: action }, (res: any) => {
-                        console.log(res)
-                    })
-                }} />
+                <UserArea
+                    username={session.data?.user.name} money={yourPlayer?.bank} cards={cards}
+                    onActionPerform={(action) => {
+                        socket?.emit("performGameAction", { gameId: gameId, userId: session.data?.user.id, username: session.data?.user.name, action: action }, (res: any) => {
+                            console.log(res)
+                        })
+                    }}
+                    availableActions={availableActions}
+                />
             </div>
         </div>
     )
 }
 
 
+function DistributePlayers({ players, dim, cards }: { players: PokerPlayerInfo[], dim: { width: number, height: number }, cards?: Card[] }) {
 
-function UserArea({ username, money, cards, onActionPerform }: { username: string, money?: number, cards?: Card[], onActionPerform: (action: GameAction) => void }) {
+    let totalAngle = 180;
+    let startingAngle = 180;
+    let angleBetween = totalAngle / (players.length - 1)
+    let radius = 250
+
+    return (
+        <div>
+            {players.map((player, index) => {
+
+                let centerpos = { x: dim.width / 1.65, y: dim.height / 2.5 }
+
+                let angle = startingAngle + (angleBetween * index)
+
+                // Special case for 1 player
+                players.length === 1 ? angle = 270 : null
+
+                let x = centerpos.x + radius * Math.cos(angle * Math.PI / 180)
+                let y = centerpos.y + radius * Math.sin(angle * Math.PI / 180)
+
+                // Account for the width of the card area
+                x = x - 25
+
+                return (
+                    <div key={index + player.username} className="absolute" style={{ left: x, top: y }}>
+                        <div className="flex flex-col items-center">
+                            <div className="font-semibold">
+                                {player.username}
+                            </div>
+                            <div>
+                                Bank: {player.bank}
+                            </div>
+                            <div>
+                                Pot: {player.pot}
+                            </div>
+                            <div>
+                                Current bet: {player.turnpot}
+                            </div>
+                            <PokerCardArea size={"small"} card1={cards?.at(0)} card2={cards?.at(1)} />
+                        </div>
+                    </div>
+                )
+            })
+            }
+        </div>
+    )
+
+}
+
+
+
+function UserArea({ username, money, cards, onActionPerform, availableActions }: { username: string, money?: number, cards?: Card[], onActionPerform: (action: GameAction) => void, availableActions?: PokerAction[] }) {
+
+    availableActions = availableActions ? availableActions : []
 
     return (
         <div className="flex flex-col w-full content-center justify-center align-middle">
@@ -101,11 +191,11 @@ function UserArea({ username, money, cards, onActionPerform }: { username: strin
                 </div >
             </div>
             <div className="flex space-x-4 mt-2">
-                <Button variant={"primary"} onClick={() => { onActionPerform({ action: "fold" }) }} > Fold </Button>
-                <Button variant={"primary"} onClick={() => { onActionPerform({ action: "call" }) }}> Call </Button>
-                <Button variant={"primary"} onClick={() => { onActionPerform({ action: "raise" }) }}> Raise </Button>
-                <Button variant={"primary"} onClick={() => { onActionPerform({ action: "check" }) }} > Check </Button>
-                <Button variant={"primary"} onClick={() => { onActionPerform({ action: "bet" }) }}> Bet </Button>
+                {availableActions.map((action, index) => {
+                    return (
+                        <Button key={index} variant={"primary"} onClick={() => { onActionPerform({ action: action }) }} > {action} </Button>
+                    )
+                })}
             </div>
         </div >
     )
