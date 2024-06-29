@@ -3,14 +3,14 @@
 import useSocket from "@/util/socket"
 import { useSession } from "next-auth/react"
 import PokerCardArea from "./pokerCardArea"
-import { Card } from "@/backend/pokergame"
+import { Card } from "@/backend/games/pokergame"
 import { GameAction, GameEvent, GameStream, PokerAction, PokerGameState, PokerPlayerInfo } from "@/types/types"
 import { useEffect, useRef, useState } from "react"
-import { Button } from "./input"
+import { Button, TextInput } from "./input"
 import { useToast } from "@/util/toastProvider"
 import PokerCardAreaBoard from "./pokerCardAreaBoard"
 
-export default function Game({ gameId, spectating }: { gameId: string, spectating: boolean }) {
+export default function PokerGame({ gameId, spectating }: { gameId: string, spectating: boolean }) {
     const session = useSession()
     const socket = useSocket()
 
@@ -99,7 +99,7 @@ export default function Game({ gameId, spectating }: { gameId: string, spectatin
 
     return (
         <div className="w-full h-full ml-20 flex justify-center" ref={gameRef}>
-            <div className="mt-20">
+            <div className="m-auto pb-32">
                 <PokerCardAreaBoard cards={boardCards} />
                 {pot ? <div className="mt-2">Total pot: {pot}</div> : null}
                 {turnPot ? <div className="mt-2">Current turn pot: {turnPot}</div> : null}
@@ -107,7 +107,7 @@ export default function Game({ gameId, spectating }: { gameId: string, spectatin
 
             <DistributePlayers players={otherPlayers ? otherPlayers : []} dim={dim} />
 
-            <div className="bottom-0 absolute mb-20">
+            <div className="bottom-0 absolute mb-10">
                 <UserArea
                     username={session.data?.user.name} money={yourPlayer?.bank} cards={cards}
                     onActionPerform={(action) => {
@@ -153,22 +153,26 @@ function DistributePlayers({ players, dim, cards }: { players: PokerPlayerInfo[]
                             <div className="font-semibold">
                                 {player.username}
                             </div>
-                            <div>
-                                Bank: {player.bank}
+                            <div className="flex space-x-4">
+                                <div>
+                                    Bank: {player.bank}
+                                </div>
+                                <div>
+                                    Pot: {player.pot}
+                                </div>
                             </div>
-                            <div>
-                                Pot: {player.pot}
+                            <div className="w-24">
+                                <PokerCardArea size={"small"} card1={cards?.at(0)} card2={cards?.at(1)} />
                             </div>
                             <div>
                                 Current bet: {player.turnpot}
                             </div>
-                            <PokerCardArea size={"small"} card1={cards?.at(0)} card2={cards?.at(1)} />
                         </div>
                     </div>
                 )
             })
             }
-        </div>
+        </div >
     )
 
 }
@@ -176,6 +180,18 @@ function DistributePlayers({ players, dim, cards }: { players: PokerPlayerInfo[]
 
 
 function UserArea({ username, money, cards, onActionPerform, availableActions }: { username: string, money?: number, cards?: Card[], onActionPerform: (action: GameAction) => void, availableActions?: PokerAction[] }) {
+    let betRaiseAmountField = useRef<HTMLInputElement>(null)
+
+    const onActionPerformWrapper = (a: GameAction) => {
+
+        if (betRaiseAmountField.current && (a.action === PokerAction.BET || a.action === PokerAction.RAISE)) {
+            a.amount = parseInt(betRaiseAmountField.current.value);
+            betRaiseAmountField.current.value = "";
+        }
+
+        onActionPerform(a)
+    }
+
 
     availableActions = availableActions ? availableActions : []
 
@@ -193,9 +209,22 @@ function UserArea({ username, money, cards, onActionPerform, availableActions }:
             <div className="flex space-x-4 mt-2">
                 {availableActions.map((action, index) => {
                     return (
-                        <Button key={index} variant={"primary"} onClick={() => { onActionPerform({ action: action }) }} > {action} </Button>
+                        <Button key={index} variant={"primary"} onClick={() => { onActionPerformWrapper({ action: action }) }} > {action} </Button>
                     )
                 })}
+            </div>
+            <div className="flex w-full items-center justify-center mt-4">
+                {availableActions.includes(PokerAction.BET) || availableActions.includes(PokerAction.RAISE) ?
+                    <TextInput ref={betRaiseAmountField} placeholder="Amount" className="h-12"
+                        acceptedValues={
+                            [
+                                "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"
+                            ]
+                        }
+
+                    />
+                    : null
+                }
             </div>
         </div >
     )

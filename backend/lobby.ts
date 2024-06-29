@@ -77,6 +77,11 @@ export default class Lobby {
             player.notify("gameStream", { event: GameEvent.START })
         })
 
+        this.game.addWinListener((player: Player) => {
+            this.status = LobbyStatus.FINISHED
+            // Handle elo and stuff
+        })
+
         this.game.startRound();
         return null;
     }

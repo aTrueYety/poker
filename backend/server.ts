@@ -6,6 +6,7 @@ import LobbyHandler from './lobbyhandler'
 import { v4 as uuidv4 } from 'uuid'
 import { GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer, Player, RoomFunctions } from '@/types/types.js'
 import { event } from 'cypress/types/jquery'
+import { Games } from './games'
 
 const app = express()
 const port = 4000
@@ -210,6 +211,27 @@ io.on("connection", socket => {
         cb({ status: "ok", settings: lobby.getSettings() })
     })
 
+    socket.on("getGameType", (data, cb) => {
+        const lobby = lobbyHandler.getLobbyByCode(data.gameId)
+
+        if (!lobby) {
+            cb({ status: "error", errorMessage: LobbyError.GAME_NOT_FOUND })
+            return
+        }
+
+        const game = lobby.getGame()
+        let gameType = null;
+
+        for (const [key, value] of Object.entries(Games)) {
+            if (game instanceof value) {
+                gameType = key
+                break
+            }
+        }
+
+        cb({ status: "ok", gameType: gameType })
+    })
+
     socket.on("updateGameSettings", (data, cb) => {
         const lobby = lobbyHandler.getLobbyByCode(data.gameId)
 
@@ -256,6 +278,7 @@ io.on("connection", socket => {
 
         cb({ status: "ok" })
         io.emit("ongoingGamesStream", lobbyHandler.getGames())
+        io.to(data.gameId).emit("gameTypeUpdate", data.gameType)
     })
 
     socket.on("getGameState", (data, cb) => {

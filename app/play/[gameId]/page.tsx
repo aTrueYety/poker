@@ -5,9 +5,11 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Chat from "@/components/chat";
 import Lobby from "@/components/lobby";
-import Game from "@/components/game";
 import { GameEvent, GameStream } from "@/types/types";
 import { useToast } from "@/util/toastProvider";
+import PokerGame from "@/components/pokerGame";
+import { Games } from "@/backend/games";
+import FourInarowGame from "@/components/fourInarowGame";
 
 export default function Play({ params }: { params: { gameId: string } }) {
     const router = useRouter();
@@ -17,11 +19,19 @@ export default function Play({ params }: { params: { gameId: string } }) {
     const [loading, setLoading] = useState(true);
     const [gameExists, setGameExists] = useState(true);
     const [gameInProgress, setGameInProgress] = useState(false);
+    const [gameType, setGameType] = useState<keyof typeof Games>();
 
     const [spectating, setSpectating] = useState<boolean>(false);
 
     const userData = { user: { id: session.data?.user.id, username: session.data?.user.name, accessToken: session.data?.user.accessToken }, gameId: params.gameId }
     const toast = useToast()
+
+    const fetchGameType = () => {
+        socket?.emit("getGameType", { gameId: params.gameId }, (res: any) => {
+            setGameType(res.gameType)
+        })
+        return;
+    }
 
     useEffect(() => {
 
@@ -37,6 +47,7 @@ export default function Play({ params }: { params: { gameId: string } }) {
             //if the game is found
             if (res.status === "ok") {
                 setSpectating(res.spectating)
+                fetchGameType();
                 setGameExists(true)
                 setGameInProgress(res.inProgress)
                 setLoading(false)
@@ -46,6 +57,7 @@ export default function Play({ params }: { params: { gameId: string } }) {
 
         socket?.on("gameStream", (data: GameStream) => {
             if (data.event === GameEvent.START) {
+                fetchGameType();
                 setGameInProgress(true)
                 return
             }
@@ -62,6 +74,7 @@ export default function Play({ params }: { params: { gameId: string } }) {
         const cleanup = () => {
             //remove user from game
 
+            socket?.off("gameStream")
             socket?.emit("leaveGame", userData)
         }
 
@@ -111,8 +124,9 @@ export default function Play({ params }: { params: { gameId: string } }) {
         <div className="flex flex-col items-center justify-center mt-2 max-h-full w-full h-full">
             <div className="flex flex-row-reverse max-h-full w-full h-full">
                 <Chat gameId={params.gameId} />
-                {!gameInProgress && <Lobby gameId={params.gameId} />}
-                {gameInProgress && <Game gameId={params.gameId} spectating={spectating} />}
+                {(!gameInProgress) && <Lobby gameId={params.gameId} />}
+                {(gameInProgress && gameType == "POKER") && <PokerGame gameId={params.gameId} spectating={spectating} />}
+                {(gameInProgress && gameType == "FOURINAROW") && <FourInarowGame gameId={params.gameId} spectating={spectating} />}
             </div>
         </div>
     )

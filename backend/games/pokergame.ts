@@ -11,9 +11,7 @@ class PokerPlayer extends Player implements Holder {
     public turnPot: number
     public roundPot: number
     public hand: Card[]
-    public isSpectating: boolean
     public hasForfeit: boolean // If the player has left the game or not perfomed an action in time
-    public hasLeft: boolean // If the player has left the game, but can still rejoin the game
 
     constructor(player: Player, hand: Card[] = [], bank: number = 2000, isSpectating = false) {
         super(player.getId(), player.getUsername(), player.notify, player.romFunctions, player.getAccessToken())
@@ -98,6 +96,7 @@ class PokerGame implements Game {
     private pot: number
     private turnPot: number
     public ingame: boolean
+    private winListeners: ((player: Player) => void)[] = [];
 
     constructor(_players: Player[], board = new PokerBoard(), blinds = [10, 20], blindTurn = 0) {
         this.players = _players.map((p) => { return new PokerPlayer(p) })
@@ -112,6 +111,10 @@ class PokerGame implements Game {
         this.ingame = false
 
         // add obvservers
+    }
+
+    addWinListener(listener: (player: Player) => void): void {
+        this.winListeners.push(listener);
     }
 
     /**
@@ -229,6 +232,20 @@ class PokerGame implements Game {
         }
     }
 
+    /**
+     * Checks wether a player has betted on the current turn.
+     * @returns true if a player has betted, false otherwise
+     */
+    private potHasbeenBet(): boolean {
+        for (const player of this.players) {
+            if (player.lastAction === "bet") {
+                return true
+            }
+        }
+        return false;
+
+    }
+
     private getAvailableActions(userId: string): PokerAction[] {
         const player = this.players.find(p => p.getId() === userId);
 
@@ -250,12 +267,20 @@ class PokerGame implements Game {
 
         console.log("Top pot: " + topPot)
 
+        const addRaiseOrBet = () => {
+            if (this.potHasbeenBet()) {
+                actions.push(PokerAction.RAISE)
+            } else {
+                actions.push(PokerAction.BET)
+            }
+        }
+
         if (topPot > player.turnPot) {
             actions.push(PokerAction.CALL)
-            actions.push(PokerAction.RAISE)
+            addRaiseOrBet();
         } else {
             actions.push(PokerAction.CHECK)
-            actions.push(PokerAction.BET)
+            addRaiseOrBet();
         }
 
         actions.push(PokerAction.FOLD)
@@ -426,6 +451,7 @@ class PokerGame implements Game {
             const player = this.players[(this.blindTurn + i) % this.players.length];
             const amt = Math.min(this.blinds[i], player.bank);
             this.playerPut(player, amt);
+            player.turnPot = amt; // Idk why playerput does not properly update turnpot in this case...
             this.bumpTurn();
             console.log("Blind: " + player.getUsername() + " " + amt);
         }
@@ -669,8 +695,16 @@ class PokerGame implements Game {
     }
 
     public getState(userId: string): PokerGameState {
+
+        let yourPlayer = this.players.find(p => p.getId() === userId)
+
+        if (!yourPlayer) {
+            return {} as PokerGameState
+        }
+
+
         return {
-            cards: this.players.find(p => p.getId() === userId)?.hand,
+            cards: yourPlayer.hand,
             otherPlayers: this.players.filter(p => p.getId() !== userId)
                 .map(player => {
                     return {
@@ -689,7 +723,7 @@ class PokerGame implements Game {
             pot: this.pot,
             turn: this.turn,
             turnpot: this.turnPot,
-            spectating: this.players.find(p => p.getId() === userId)?.isSpectating,
+            spectating: yourPlayer.isSpectating,
             allSpectators: this.players.filter(p => p.isSpectating).map(p => {
                 return {
                     id: p.getId(),
@@ -699,17 +733,16 @@ class PokerGame implements Game {
             yourTurn: this.players[this.turn].getId() === userId,
 
             //TODO: this is VERY hacky. Fix :)
-            yourPlayer: Array(this.players.find(p => p.getId() === userId)).map((player) => {
-                return {
-                    id: player.getId(),
-                    username: player.getUsername(),
-                    pot: player.roundPot,
-                    lastAction: player.lastAction,
-                    bank: player.bank,
-                    allIn: player.allIn,
-                    turnpot: player.turnPot
-                } as PokerPlayerInfo
-            }).at(0),
+            yourPlayer:
+                {
+                    id: yourPlayer.getId(),
+                    username: yourPlayer.getUsername(),
+                    pot: yourPlayer.roundPot,
+                    lastAction: yourPlayer.lastAction,
+                    bank: yourPlayer.bank,
+                    allIn: yourPlayer.allIn,
+                    turnpot: yourPlayer.turnPot
+                } as PokerPlayerInfo,
 
             availableActions: this.getAvailableActions(userId)
         }

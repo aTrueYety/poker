@@ -7,6 +7,7 @@ import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { DefaultTimeControls, GameSettings, LobbyError, PlayerInfo } from "@/types/types";
 import { useToast } from "@/util/toastProvider";
+import { Games } from "@/backend/games";
 
 export default function Lobby({ gameId }: { gameId: string }) {
     const session = useSession();
@@ -68,15 +69,6 @@ export default function Lobby({ gameId }: { gameId: string }) {
     }, [owner])
 
     const startGame = () => {
-        // Set the game
-        socket?.emit("setGame", { gameId: gameId, userId: session.data?.user.id, gameType: "POKER" }, (res: any) => {
-            if (res.status === "error") {
-                toast.enqueue({ title: "Error", text: "An error occurred while setting the game \n Error: " + LobbyError[res.errorMessage], variant: "error", fade: 4000 })
-                return
-            }
-        })
-
-
         socket?.emit("startGame", { gameId: gameId, userId: session.data?.user.id }, (res: any) => {
             if (res.status === "error") {
                 toast.enqueue({ title: "Error", text: "An error occurred while starting the game \n Error: " + LobbyError[res.errorMessage], variant: "error", fade: 4000 })
@@ -109,6 +101,9 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
     const [loading, setLoading] = useState(true);
     const [settings, setSettings] = useState<GameSettings>();
     const [justUpdated, setJustUpdated] = useState(false)
+    const [game, setGame] = useState<keyof typeof Games>();
+    const [gameDrowdownOpen, setGameDropdownOpen] = useState<number>(-1)
+    const toast = useToast();
     const session = useSession();
 
     useEffect(() => {
@@ -121,11 +116,38 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
             setLoading(false)
         })
 
+        socket?.emit("getGameType", { gameId }, (res: any) => {
+            if (res.status === "error") {
+                return
+            }
+
+            console.log(res)
+
+            setGame(res.gameType)
+        });
+
         socket?.on("gameSettingsUpdate", (settings: GameSettings) => {
-            setSettings(settings)
             setJustUpdated(true)
+            setSettings(settings)
+        });
+
+        socket?.on("gameTypeUpdate", (game: keyof typeof Games) => {
+            setGame(game)
         });
     }, [])
+
+    useEffect(() => {
+        setGameDropdownOpen(game ? Object.keys(Games).indexOf(game) : -1)
+
+        if (!game || !owner) return
+
+        socket?.emit("setGame", { gameId: gameId, userId: session.data?.user.id, gameType: game }, (res: any) => {
+            if (res.status === "error") {
+                toast.enqueue({ title: "Error", text: "An error occurred while setting the game \n Error: " + LobbyError[res.errorMessage], variant: "error", fade: 4000 })
+                return
+            }
+        })
+    }, [game])
 
     useEffect(() => {
         if (loading) { return }
@@ -178,6 +200,20 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
 
                 <div className="flex space-x-6 flex-row justify-between items-center mt-2">
                     <div>
+                        Game type
+                    </div>
+                    <Dropdown open={gameDrowdownOpen} >
+                        {Object.keys(Games).map((game, index) => {
+                            return (
+                                <DropdownItem key={index} onSelect={() => { setGame(game as keyof typeof Games) }}>{game}</DropdownItem>
+                            )
+                        })}
+                    </Dropdown>
+                </div>
+
+                <div className="flex space-x-6 flex-row justify-between items-center mt-2">
+
+                    <div>
                         Time control
                     </div>
                     <Dropdown open={-1} >
@@ -187,6 +223,7 @@ function LobbySettings({ gameId, owner }: { gameId: string, owner: boolean }) {
                         <DropdownItem>Rapid</DropdownItem>
                         <DropdownItem>Custom</DropdownItem>
                     </Dropdown>
+
                 </div>
             </div>
         </div>

@@ -1,5 +1,5 @@
 import { Player, RoomFunctions, Suit, Value } from "@/types/types";
-import { Deck, PokerGame, PokerPlayer, Holder, Card } from "../pokergame";
+import { Deck, PokerGame, PokerPlayer, Holder, Card } from "../../games/pokergame";
 import { beforeEach, describe, expect, test } from '@jest/globals';
 
 

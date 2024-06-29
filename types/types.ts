@@ -1,4 +1,4 @@
-import { PokerGame } from "@/backend/pokergame";
+import { PokerGame } from "../backend/games/pokergame";
 import { Socket } from "socket.io";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 
@@ -67,6 +67,14 @@ export type Card = {
 export type GameAction = {
     action: string;
     amount?: number;
+    data?: any;
+}
+
+export interface FourInarowAction extends GameAction {
+    action: "place";
+    data: {
+        column: number;
+    }
 }
 
 
@@ -76,6 +84,7 @@ export type GameAction = {
 export interface Game {
     players: Player[];
     infoText: string;
+    addWinListener: (listener: (player: Player) => void) => void;
     startRound(): void;
     addPlayer(player: Player): void;
     removePlayer(playerId: string): void;
@@ -133,6 +142,8 @@ export class Player {
     private accessToken: string
     public notify: NotifyUserFunction
     public romFunctions: RoomFunctions
+    public isSpectating: boolean = false;
+    public hasLeft: boolean = false;
 
     constructor(id: string, username: string, notify: NotifyUserFunction, roomFunctions: RoomFunctions, accessToken: string) {
         this.id = id
@@ -179,6 +190,7 @@ export enum GameEvent {
     ACTION,
     END_OF_ROUND,
     START,
+    WIN,
     END
 }
 
@@ -187,8 +199,6 @@ export interface GameStream {
     player: PlayerInfo;
     message: any;
 }
-
-
 
 export interface GameState {
     allSpectators: PlayerInfo[];
@@ -233,6 +243,21 @@ export interface PokerPlayerInfo extends PlayerInfo {
     bank: number,
     allIn: boolean
 }
+
+export interface FourInarowGameState extends GameState {
+    otherPlayers: PlayerInfo[];
+    board: number[][]
+    yourTurn: boolean;
+    yourPosition: number;
+    turn: number;
+    spectating: boolean;
+}
+
+export interface FourInarowWinInfo {
+    player: number;
+    winningLine: number[][];
+}
+
 
 
 

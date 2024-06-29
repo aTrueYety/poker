@@ -68,8 +68,8 @@ describe("testLobby", () => {
         lobby.setGame("POKER");
         lobby.startGame();
         expect(lobby.status).toBe(LobbyStatus.IN_PROGRESS);
-        expect(notifyCallback.mock.calls).toHaveLength(2);
-        expect(notifyCallback.mock.calls[0][1]).toStrictEqual({ event: GameEvent.START }); // First message to socket should be game start
+        expect(notifyCallback.mock.calls).toHaveLength(3);
+        expect(notifyCallback.mock.calls[1][1]).toStrictEqual({ event: GameEvent.START }); // Second message to socket should be game start
     });
 
     test("testJoinGameInProgress", () => {
@@ -79,8 +79,8 @@ describe("testLobby", () => {
         let nc = jest.fn();
         lobby.addPlayer(new Player("2", "player2", nc, { join: (a) => { }, leave: (a) => { } } as RoomFunctions, "2"))
         expect(lobby.getGame()?.players.length).toBe(2)
-        expect(nc.mock.calls).toHaveLength(1);
-        expect(nc.mock.calls[0][1]).toStrictEqual({ event: GameEvent.START }); // New player should receive game start message
+        expect(nc.mock.calls).toHaveLength(2);
+        expect(nc.mock.calls[1][1]).toStrictEqual({ event: GameEvent.START }); // New player should receive game start message
     });
 
     test("testStartGameNoGameSet", () => {
