@@ -1,5 +1,6 @@
 "use client"
 
+import { ClientToServerEvents, ServerToClientEvents } from "@/types/types";
 import { ToastProvider } from "@/util/toastProvider";
 import { Session } from "next-auth"
 import { SessionProvider } from "next-auth/react"
@@ -7,11 +8,11 @@ import React, { createContext } from "react";
 import { io, Socket } from "socket.io-client";
 
 interface socketContext {
-    socket: Socket | null
+    socket: Socket<ServerToClientEvents, ClientToServerEvents> | null
 }
 
 
-export const socketContext = createContext<Socket | null>(null)
+export const socketContext = createContext<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null)
 
 function LayoutWrapper({
     children,

@@ -4,9 +4,10 @@ import express from 'express'
 import ip from 'ip'
 import LobbyHandler from './lobbyhandler'
 import { v4 as uuidv4 } from 'uuid'
-import { GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer, Player, RoomFunctions } from '@/types/types.js'
+import { ClientToServerEvents, GameEvent, GameStream, LobbyError, LobbyStatus, Message, MessageTransfer, Player, PlayerInfo, RoomFunctions, ServerToClientEvents } from '@/types/types.js'
 import { event } from 'cypress/types/jquery'
 import { Games } from './games'
+import { DefaultEventsMap } from 'socket.io/dist/typed-events'
 
 const app = express()
 const port = 4000
@@ -18,7 +19,7 @@ const deleteLobbyOnEmpty = false;
 //const hostname = ip.address()
 
 const server = createServer(app)
-const io = new Server(server,
+const io = new Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, any>(server,
     {
         cors: {
             origin: "*", //BAD!
@@ -33,7 +34,7 @@ server.listen(port, () => {
 let lobbyHandler = new LobbyHandler()
 
 io.on("connection", socket => {
-    socket.on("fetchGames", data => {
+    socket.on("fetchGames", () => {
         socket.emit("ongoingGamesStream", lobbyHandler.getGames())
     })
 
@@ -49,15 +50,17 @@ io.on("connection", socket => {
             return
         }
 
+        socket.emit
+
         lobby.addPlayer(new Player(data.user.id, data.user.username,
-            (ev, args) => socket.emit(ev, args),
+            (ev, ...args) => socket.emit(ev, ...args),
             {
                 join: (room: string) => socket.join(room),
                 leave: (room: string) => socket.leave(room),
             } as RoomFunctions,
             data.user.accessToken))
         callback({ status: "ok", inProgress: lobby.status === LobbyStatus.IN_PROGRESS })
-        io.to(data.gameId).emit("playerUpate", lobby.getPlayers().map(player => player.toPlayerInfo()))
+        io.to(data.gameId).emit("playerUpdate", lobby.getPlayers().map(player => player.toPlayerInfo()))
 
         io.emit("ongoingGamesStream", lobbyHandler.getGames())
     })
@@ -129,11 +132,11 @@ io.on("connection", socket => {
             cb({ status: "ok" })
             return
         }
-        cb({ status: "error" })
+        cb({ status: "notFound" })
     })
 
     socket.on("ownerOf", (data, cb) => {
-        console.log(data)
+
         const lobby = lobbyHandler.getLobbyByCode(data.gameId)
         if (!lobby) {
             cb({ status: "error" })
@@ -195,7 +198,7 @@ io.on("connection", socket => {
             cb({ status: "error", errorMessage: "Invalid action" })
         }
 
-        io.to(data.gameId).emit("gameStream", { player: { id: data.userId, username: data.username }, event: GameEvent.ACTION } as GameStream)
+        io.to(data.gameId).emit("gameStream", { player: { id: data.userId, username: data.username } as PlayerInfo, event: GameEvent.ACTION } as GameStream)
 
         cb({ status: "ok", })
     })
@@ -265,7 +268,7 @@ io.on("connection", socket => {
         }
 
         if (lobby.getOwner() !== data.userId) {
-            cb({ status: "error", errorMessage: "Denied" })
+            cb({ status: "error", errorMessage: "denied" })
             return
         }
 

@@ -35,10 +35,6 @@ export default function Chat({ gameId }: { gameId: string }) {
             setMessages(res)
         })
 
-        socket?.on("gamestream", (res: any) => {
-            console.log(res)
-        })
-
     }, [])
 
     //cleanup on page unload
@@ -47,7 +43,6 @@ export default function Chat({ gameId }: { gameId: string }) {
 
             // Remove all socket listeners
             socket?.off("chatMessage")
-            socket?.off("gamestreamAt" + gameId)
         }
 
     }, [])

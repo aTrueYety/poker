@@ -179,7 +179,7 @@ function DistributePlayers({ players, dim, cards }: { players: PokerPlayerInfo[]
 
 
 
-function UserArea({ username, money, cards, onActionPerform, availableActions }: { username: string, money?: number, cards?: Card[], onActionPerform: (action: GameAction) => void, availableActions?: PokerAction[] }) {
+function UserArea({ username, money, cards, onActionPerform, availableActions }: { username?: string, money?: number, cards?: Card[], onActionPerform: (action: GameAction) => void, availableActions?: PokerAction[] }) {
     let betRaiseAmountField = useRef<HTMLInputElement>(null)
 
     const onActionPerformWrapper = (a: GameAction) => {
